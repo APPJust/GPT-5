@@ -1,0 +1,387 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>即時翻譯：繁中 → 越南語</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;600;700&display=swap" rel="stylesheet">
+  <style>
+    html, body { font-family: 'Noto Sans TC', system-ui, -apple-system, Segoe UI, Roboto, 'Helvetica Neue', Arial, 'Noto Sans', 'Apple Color Emoji', 'Segoe UI Emoji'; }
+    #subtitleOverlay {
+      position: fixed; left: 0; right: 0; bottom: 0; z-index: 50;
+      padding: 16px 24px; background: rgba(0,0,0,0.55); color: #fff;
+      font-size: clamp(18px, 3.4vw, 36px); line-height: 1.35; text-align: center;
+      backdrop-filter: blur(2px);
+    }
+    .chip { border-radius: 9999px; padding: 0.25rem 0.625rem; font-size: 0.75rem; }
+    .switch:checked + .switch-slider { background-color: rgb(59 130 246); }
+    .switch:checked + .switch-slider:before { transform: translateX(1.25rem); }
+    .switch-slider { position: relative; display: inline-block; width: 2.5rem; height: 1.25rem; background: #cbd5e1; border-radius: 9999px; transition: background .2s; vertical-align: middle; }
+    .switch-slider:before { content: ""; position: absolute; left: 0.125rem; top: 0.125rem; width: 1rem; height: 1rem; background: white; border-radius: 9999px; transition: transform .2s; box-shadow: 0 1px 2px rgba(0,0,0,.2); }
+    .kbd { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; font-size: .75rem; background: #0f172a; color: #fff; padding: 0.15rem 0.4rem; border-radius: 0.25rem; }
+  </style>
+</head>
+<body class="min-h-screen bg-slate-50">
+  <header class="sticky top-0 z-40 bg-white/90 backdrop-blur border-b border-slate-200">
+    <div class="max-w-6xl mx-auto px-4 py-3 flex flex-wrap items-center gap-3">
+      <h1 class="text-xl sm:text-2xl font-bold">即時翻譯：繁體中文 → 越南語</h1>
+      <div class="ml-auto flex items-center gap-3 text-sm">
+        <span id="statusMic" class="chip bg-slate-200 text-slate-700">麥克風：未啟動</span>
+        <span id="statusTrans" class="chip bg-slate-200 text-slate-700">翻譯：閒置</span>
+        <span id="statusTTS" class="chip bg-slate-200 text-slate-700">語音輸出：關</span>
+      </div>
+    </div>
+  </header>
+
+  <main class="max-w-6xl mx-auto p-4 grid grid-cols-1 lg:grid-cols-2 gap-6">
+    <!-- 左側：輸入區 -->
+    <section class="bg-white rounded-2xl shadow p-4 sm:p-6">
+      <div class="flex items-center justify-between mb-3">
+        <h2 class="text-lg font-semibold">輸入（繁中 zh‑TW）</h2>
+        <div class="flex items-center gap-3">
+          <button id="btnStart" class="px-3 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-medium shadow">開始聽寫</button>
+          <button id="btnStop" class="px-3 py-2 rounded-xl bg-slate-200 hover:bg-slate-300 text-slate-900 font-medium">停止</button>
+        </div>
+      </div>
+
+      <label class="block text-sm text-slate-600 mb-1" for="textInput">打字輸入</label>
+      <textarea id="textInput" rows="6" placeholder="在此輸入繁體中文，系統會自動翻譯成越南語…" class="w-full rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500 p-3"></textarea>
+
+      <div class="mt-4">
+        <div class="flex items-center justify-between">
+          <span class="text-sm text-slate-600">語音即時字幕（中文）</span>
+          <span class="text-xs text-slate-500">快捷鍵：<span class="kbd">P</span> 開/關麥克風</span>
+        </div>
+        <div id="asrBox" class="mt-2 min-h-[4.5rem] rounded-xl border border-slate-200 bg-slate-50 p-3 text-slate-800">
+          <div class="text-sm"><span class="font-medium">最終：</span><span id="asrFinal"></span></div>
+          <div class="text-sm opacity-70"><span class="font-medium">暫存：</span><span id="asrInterim"></span></div>
+        </div>
+      </div>
+
+      <div class="mt-4 grid grid-cols-2 gap-3 text-sm">
+        <label class="flex items-center gap-2">
+          <input id="chkTranslateInterim" type="checkbox" class="switch hidden"><span class="switch-slider"></span>
+          翻譯暫存結果（邊講邊翻）
+        </label>
+        <label class="flex items-center gap-2">
+          <input id="chkAutoSpeak" type="checkbox" class="switch hidden" checked><span class="switch-slider"></span>
+          最終句自動發音（越南語）
+        </label>
+      </div>
+    </section>
+
+    <!-- 右側：輸出區 -->
+    <section class="bg-white rounded-2xl shadow p-4 sm:p-6">
+      <div class="flex items-center justify-between mb-3">
+        <h2 class="text-lg font-semibold">輸出（越南語 vi‑VN）</h2>
+        <div class="flex items-center gap-2">
+          <button id="btnCopy" class="px-3 py-2 rounded-xl bg-slate-200 hover:bg-slate-300 text-slate-900 font-medium">複製翻譯</button>
+          <button id="btnClear" class="px-3 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-900">清除</button>
+        </div>
+      </div>
+
+      <label class="block text-sm text-slate-600 mb-1">即時字幕（越南語）</label>
+      <div id="outBox" class="min-h-[8rem] rounded-xl border border-slate-200 bg-slate-50 p-3">
+        <div class="text-sm text-slate-500">翻譯結果將顯示於此，也會投影在下方字幕條。</div>
+        <div id="outText" class="mt-2 text-lg leading-relaxed"></div>
+      </div>
+
+      <div class="mt-4 grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
+        <label class="flex items-center justify-between gap-3">
+          <span>顯示底部大字幕</span>
+          <div>
+            <input id="chkOverlay" type="checkbox" class="switch hidden" checked>
+            <span class="switch-slider align-middle"></span>
+          </div>
+        </label>
+        <label class="flex items-center justify-between gap-3">
+          <span>語音輸出（越南語）</span>
+          <div>
+            <input id="chkSpeak" type="checkbox" class="switch hidden">
+            <span class="switch-slider align-middle"></span>
+          </div>
+        </label>
+      </div>
+
+      <div class="mt-4 grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
+        <label class="block">語音（Voice）
+          <select id="voiceSelect" class="mt-1 w-full rounded-xl border border-slate-300 p-2">
+            <option value="">（自動選擇越南語音）</option>
+          </select>
+        </label>
+        <div class="grid grid-cols-3 gap-3">
+          <label class="block">語速
+            <input id="rate" type="range" min="0.5" max="1.5" step="0.05" value="1" class="w-full">
+          </label>
+          <label class="block">音調
+            <input id="pitch" type="range" min="0.5" max="2" step="0.1" value="1" class="w-full">
+          </label>
+          <label class="block">音量
+            <input id="volume" type="range" min="0" max="1" step="0.05" value="1" class="w-full">
+          </label>
+        </div>
+      </div>
+
+      <p class="mt-4 text-xs text-slate-500 leading-6">
+        ⚠️ 注意：此示範預設使用免費公共翻譯 API（MyMemory），可能有流量/品質限制與延遲；建議在正式上線時改接 <strong>Google Cloud Translation</strong> 或 <strong>Azure Translator</strong> 等商用服務（下方程式已留擴充點），並搭配金鑰、代理伺服器避免 CORS 與金鑰外洩。
+      </p>
+    </section>
+  </main>
+
+  <!-- 底部字幕 -->
+  <div id="subtitleOverlay" class="hidden"><span id="overlayText"></span></div>
+
+  <footer class="max-w-6xl mx-auto px-4 py-8 text-center text-xs text-slate-500">
+    以瀏覽器 <span class="font-medium">Web Speech API</span>（語音辨識與語音合成）與公共翻譯 API 製作。最佳體驗建議使用 Chrome / Edge。
+  </footer>
+
+  <script>
+    // ====== 工具：節流 / 去抖 ======
+    function debounce(fn, delay = 400) {
+      let t; return (...args) => { clearTimeout(t); t = setTimeout(() => fn(...args), delay); };
+    }
+
+    // ====== UI 元素 ======
+    const el = (id) => document.getElementById(id);
+    const statusMic = el('statusMic');
+    const statusTrans = el('statusTrans');
+    const statusTTS = el('statusTTS');
+    const btnStart = el('btnStart');
+    const btnStop = el('btnStop');
+    const textInput = el('textInput');
+    const asrFinal = el('asrFinal');
+    const asrInterim = el('asrInterim');
+    const outText = el('outText');
+    const outBox = el('outBox');
+    const btnCopy = el('btnCopy');
+    const btnClear = el('btnClear');
+    const chkTranslateInterim = el('chkTranslateInterim');
+    const chkAutoSpeak = el('chkAutoSpeak');
+    const chkOverlay = el('chkOverlay');
+    const chkSpeak = el('chkSpeak');
+    const overlay = el('subtitleOverlay');
+    const overlayText = el('overlayText');
+
+    const voiceSelect = el('voiceSelect');
+    const rate = el('rate');
+    const pitch = el('pitch');
+    const volume = el('volume');
+
+    // ====== 語音合成（TTS）設定 ======
+    let voices = [];
+    function loadVoices() {
+      voices = speechSynthesis.getVoices();
+      // 只把越南語與可能相近語音排前面
+      const sorted = voices.slice().sort((a,b) => {
+        const aVi = /vi/i.test(a.lang);
+        const bVi = /vi/i.test(b.lang);
+        if (aVi && !bVi) return -1; if (!aVi && bVi) return 1; return a.name.localeCompare(b.name);
+      });
+      voiceSelect.innerHTML = '<option value="">（自動選擇越南語音）</option>' +
+        sorted.map((v,i) => `<option value="${v.name}">${v.name} — ${v.lang}</option>`).join('');
+    }
+    loadVoices();
+    if (typeof speechSynthesis !== 'undefined') {
+      speechSynthesis.onvoiceschanged = loadVoices;
+    }
+
+    function pickVietnameseVoice() {
+      const byName = voices.find(v => v.name === voiceSelect.value);
+      if (byName) return byName;
+      const viFirst = voices.find(v => /vi/i.test(v.lang));
+      if (viFirst) return viFirst;
+      return voices[0];
+    }
+
+    function speakVi(text) {
+      if (!chkSpeak.checked) return; // 未開啟語音輸出
+      if (!text || !('speechSynthesis' in window)) return;
+      const u = new SpeechSynthesisUtterance(text);
+      const v = pickVietnameseVoice();
+      if (v) u.voice = v;
+      u.rate = parseFloat(rate.value || '1');
+      u.pitch = parseFloat(pitch.value || '1');
+      u.volume = parseFloat(volume.value || '1');
+      speechSynthesis.cancel(); // 先清空佇列，避免堆疊
+      speechSynthesis.speak(u);
+    }
+
+    // ====== 翻譯器（可替換） ======
+    async function translateWithMyMemory(q) {
+      // 免費公共 API，可能有限制；語言對：繁中→越南語
+      const url = `https://api.mymemory.translated.net/get?q=${encodeURIComponent(q)}&langpair=zh-TW|vi`;
+      const r = await fetch(url);
+      if (!r.ok) throw new Error('MyMemory API error');
+      const data = await r.json();
+      let ans = data?.responseData?.translatedText || '';
+      if (!ans && Array.isArray(data?.matches) && data.matches.length) {
+        ans = data.matches[0].translation || '';
+      }
+      return ans;
+    }
+
+    async function translateWithLibre(q) {
+      // 備援：LibreTranslate 的測試端點（可能 CORS/流量受限）
+      const r = await fetch('https://translate.astian.org/translate', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ q, source: 'zh', target: 'vi', format: 'text' })
+      });
+      if (!r.ok) throw new Error('LibreTranslate API error');
+      const data = await r.json();
+      return data?.translatedText || '';
+    }
+
+    async function translateText(q) {
+      if (!q || !q.trim()) return '';
+      statusTrans.textContent = '翻譯：處理中…'; statusTrans.className = 'chip bg-blue-100 text-blue-800';
+      try {
+        const t = await translateWithMyMemory(q.trim());
+        statusTrans.textContent = '翻譯：完成'; statusTrans.className = 'chip bg-green-100 text-green-800';
+        return t;
+      } catch (e1) {
+        try {
+          const t2 = await translateWithLibre(q.trim());
+          statusTrans.textContent = '翻譯：完成(備援)'; statusTrans.className = 'chip bg-green-100 text-green-800';
+          return t2;
+        } catch (e2) {
+          console.error(e1, e2);
+          statusTrans.textContent = '翻譯：失敗'; statusTrans.className = 'chip bg-rose-100 text-rose-800';
+          return '[翻譯服務目前不可用] ' + q;
+        }
+      }
+    }
+
+    const doTranslate = debounce(async (text, options = { speak: false }) => {
+      const translated = await translateText(text);
+      if (translated != null) {
+        outText.textContent = translated;
+        if (chkOverlay.checked) overlayText.textContent = translated;
+        if (options.speak && (chkSpeak.checked || chkAutoSpeak.checked)) speakVi(translated);
+      }
+    }, 250);
+
+    // ====== 底部字幕顯示切換 ======
+    function updateOverlayVisibility() {
+      overlay.classList.toggle('hidden', !chkOverlay.checked);
+    }
+    chkOverlay.addEventListener('change', updateOverlayVisibility);
+    updateOverlayVisibility();
+
+    // ====== 文字輸入事件：即時翻譯 ======
+    textInput.addEventListener('input', () => {
+      const text = textInput.value;
+      doTranslate(text, { speak: false });
+    });
+
+    // ====== 複製與清除 ======
+    btnCopy.addEventListener('click', async () => {
+      const s = outText.textContent || '';
+      if (!s) return;
+      await navigator.clipboard.writeText(s);
+      btnCopy.textContent = '已複製！';
+      setTimeout(() => btnCopy.textContent = '複製翻譯', 1200);
+    });
+    btnClear.addEventListener('click', () => {
+      textInput.value = '';
+      asrFinal.textContent = '';
+      asrInterim.textContent = '';
+      outText.textContent = '';
+      overlayText.textContent = '';
+    });
+
+    // ====== 語音辨識（ASR） ======
+    const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+    let recognition = null;
+    let listening = false;
+
+    function updateMicStatus() {
+      if (listening) {
+        statusMic.textContent = '麥克風：錄音中'; statusMic.className = 'chip bg-green-100 text-green-800';
+      } else {
+        statusMic.textContent = '麥克風：未啟動'; statusMic.className = 'chip bg-slate-200 text-slate-700';
+      }
+    }
+    updateMicStatus();
+
+    function initRecognition() {
+      if (!SR) {
+        alert('此瀏覽器不支援語音辨識（Web Speech API）。建議使用 Chrome 或 Edge。');
+        return null;
+      }
+      const r = new SR();
+      r.lang = 'zh-TW';
+      r.continuous = true;
+      r.interimResults = true;
+      r.maxAlternatives = 1;
+
+      r.onstart = () => { listening = true; updateMicStatus(); };
+      r.onend = () => { listening = false; updateMicStatus(); };
+      r.onerror = (ev) => {
+        console.warn('ASR error:', ev);
+        listening = false; updateMicStatus();
+        if (ev.error === 'no-speech') return; // 靜音
+        if (ev.error === 'not-allowed') alert('麥克風權限被拒絕。請在瀏覽器設定中允許使用麥克風。');
+      };
+
+      r.onresult = (event) => {
+        let interim = '';
+        for (let i = event.resultIndex; i < event.results.length; i++) {
+          const res = event.results[i];
+          const txt = (res[0]?.transcript || '').trim();
+          if (!txt) continue;
+          if (res.isFinal) {
+            // 將最終句附加
+            asrFinal.textContent = (asrFinal.textContent + ' ' + txt).trim();
+            // 同步到輸入框（可開關；此處直接同步）
+            textInput.value = (textInput.value + ' ' + txt).trim();
+            // 翻譯並（若開啟）發音
+            doTranslate(textInput.value, { speak: chkAutoSpeak.checked });
+          } else {
+            interim = txt;
+          }
+        }
+        asrInterim.textContent = interim;
+        if (chkTranslateInterim.checked) {
+          const partial = (textInput.value + ' ' + interim).trim();
+          doTranslate(partial, { speak: false });
+        }
+      };
+      return r;
+    }
+
+    function startListening() {
+      if (!recognition) recognition = initRecognition();
+      if (!recognition) return;
+      try { recognition.start(); } catch {}
+    }
+    function stopListening() {
+      if (recognition) recognition.stop();
+    }
+
+    btnStart.addEventListener('click', startListening);
+    btnStop.addEventListener('click', stopListening);
+
+    // 鍵盤快捷鍵：P 開/關
+    window.addEventListener('keydown', (e) => {
+      if (['INPUT', 'TEXTAREA'].includes(document.activeElement.tagName)) return;
+      if (e.key.toLowerCase() === 'p') {
+        listening ? stopListening() : startListening();
+      }
+    });
+
+    // ====== 切換語音輸出狀態 ======
+    function updateSpeakStatus() {
+      statusTTS.textContent = `語音輸出：${chkSpeak.checked ? '開' : '關'}`;
+      statusTTS.className = chkSpeak.checked ? 'chip bg-amber-100 text-amber-900' : 'chip bg-slate-200 text-slate-700';
+    }
+    chkSpeak.addEventListener('change', updateSpeakStatus);
+    updateSpeakStatus();
+
+    // 初始化：若使用者開始輸入就即時翻譯
+    if (textInput.value) doTranslate(textInput.value, { speak: false });
+  </script>
+</body>
+</html>
