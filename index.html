@@ -367,6 +367,9 @@
     updateMicStatus();
 
     function initRecognition() {
+      if (!window.isSecureContext) {
+        alert('需要在 HTTPS 網站或 http://localhost 下執行，瀏覽器才允許語音辨識。');
+      }
       if (!SR) {
         alert('此瀏覽器不支援語音辨識（Web Speech API）。建議使用 Chrome 或 Edge。');
         return null;
@@ -417,12 +420,22 @@
       return r;
     }
 
-    function startListening() {
+    async function startListening() {
       if (!recognition) recognition = initRecognition();
       if (!recognition) return;
       keepAlive = true;
+      // 先嘗試取得一次麥克風權限（有些瀏覽器需要用戶手勢觸發）
+      if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+        try {
+          const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+          stream.getTracks().forEach(t => t.stop()); // 立刻釋放 tracks
+        } catch (permErr) {
+          console.warn('getUserMedia denied:', permErr);
+          alert('無法取得麥克風權限，請在瀏覽器設定中允許麥克風使用。');
+          return;
+        }
+      }
       try { recognition.start(); } catch (e) { console.warn('ASR start error:', e); }
-    } catch {}
     }
     function stopListening() {
       keepAlive = false;
