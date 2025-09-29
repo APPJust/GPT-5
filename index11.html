@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <title>寶可夢圖鑑</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            background: #f7f7f7;
+            margin: 0;
+            padding: 20px;
+        }
+        h1 {
+            color: #ff0000;
+        }
+        #pokemon-container {
+            margin-top: 20px;
+            display: inline-block;
+            background: #fff;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+        img {
+            width: 150px;
+            height: 150px;
+        }
+        .label {
+            font-weight: bold;
+        }
+        input, button {
+            padding: 10px;
+            font-size: 16px;
+            margin: 5px;
+        }
+        #author {
+            margin-top: 40px;
+            font-size: 14px;
+            color: #555;
+        }
+    </style>
+</head>
+<body>
+    <h1>寶可夢圖鑑</h1>
+    <input type="text" id="pokemon-input" placeholder="輸入寶可夢名稱或編號">
+    <button onclick="searchPokemon()">查詢</button>
+
+    <div id="pokemon-container" style="display:none;">
+        <h2 id="pokemon-name"></h2>
+        <img id="pokemon-image" src="" alt="寶可夢圖片">
+        <p><span class="label">屬性：</span><span id="pokemon-types"></span></p>
+        <p><span class="label">能力值：</span></p>
+        <ul id="pokemon-stats"></ul>
+    </div>
+
+    <div id="author">作者: 李振偉</div>
+
+    <script>
+        async function searchPokemon() {
+            const input = document.getElementById('pokemon-input').value.toLowerCase().trim();
+            if (!input) return alert('請輸入寶可夢名稱或編號');
+
+            try {
+                const response = await fetch(`https://pokeapi.co/api/v2/pokemon/${input}`);
+                if (!response.ok) throw new Error('找不到寶可夢');
+
+                const data = await response.json();
+
+                document.getElementById('pokemon-name').textContent = data.name.charAt(0).toUpperCase() + data.name.slice(1);
+                document.getElementById('pokemon-image').src = data.sprites.front_default || '';
+                document.getElementById('pokemon-types').textContent = data.types.map(t => t.type.name).join(', ');
+                
+                const statsList = document.getElementById('pokemon-stats');
+                statsList.innerHTML = '';
+                data.stats.forEach(stat => {
+                    const li = document.createElement('li');
+                    li.textContent = `${stat.stat.name}: ${stat.base_stat}`;
+                    statsList.appendChild(li);
+                });
+
+                document.getElementById('pokemon-container').style.display = 'inline-block';
+
+            } catch (error) {
+                alert('查詢失敗: ' + error.message);
+                document.getElementById('pokemon-container').style.display = 'none';
+            }
+        }
+    </script>
+</body>
+</html>

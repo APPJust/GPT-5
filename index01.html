@@ -1,0 +1,227 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>待辦事項清單 (To-Do List)</title>
+  <style>
+    :root{--bg:#f6f8fa;--card:#ffffff;--accent:#4f46e5;--muted:#6b7280}
+    *{box-sizing:border-box}
+    html,body{height:100%;margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,'Noto Sans TC',Helvetica,Arial}
+    body{background:linear-gradient(180deg,#eef2ff 0%,var(--bg) 100%);display:flex;align-items:center;justify-content:center;padding:28px}
+    .wrap{width:100%;max-width:760px}
+    header{display:flex;align-items:center;justify-content:space-between;margin-bottom:18px}
+    h1{margin:0;font-size:20px;color:#111827}
+    .author{font-size:13px;color:var(--muted)}
+    .card{background:var(--card);border-radius:14px;box-shadow:0 6px 20px rgba(15,23,42,0.06);padding:18px}
+    .input-row{display:flex;gap:8px;margin-bottom:12px}
+    input[type="text"]{flex:1;padding:10px 12px;border-radius:10px;border:1px solid #e6e9ef;font-size:14px}
+    button{background:var(--accent);color:white;border:0;padding:10px 14px;border-radius:10px;font-weight:600;cursor:pointer}
+    button.ghost{background:transparent;color:var(--accent);border:1px solid rgba(79,70,229,0.12)}
+    ul{list-style:none;padding:0;margin:0}
+    li{display:flex;align-items:center;gap:12px;padding:10px;border-radius:10px;margin-bottom:8px;border:1px solid #f1f3f5}
+    li.completed{opacity:0.6;text-decoration:line-through;background:linear-gradient(90deg,#f8fafc, #fbfbff)}
+    .check{width:22px;height:22px;border-radius:6px;border:2px solid #d1d5db;display:flex;align-items:center;justify-content:center;cursor:pointer}
+    .check.checked{background:var(--accent);border-color:var(--accent);color:white}
+    .title{flex:1}
+    .meta{font-size:12px;color:var(--muted)}
+    .actions{display:flex;gap:8px}
+    .small{padding:6px 8px;border-radius:8px;font-size:13px}
+    footer{display:flex;align-items:center;justify-content:space-between;margin-top:12px;font-size:13px;color:var(--muted)}
+    @media (max-width:520px){.wrap{padding:12px}}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <h1>待辦事項清單 (To-Do List)</h1>
+      <div class="author">作者: 李振偉</div>
+    </header>
+
+    <div class="card">
+      <div class="input-row">
+        <input id="taskInput" type="text" placeholder="輸入新任務，按 Enter 或點擊新增" aria-label="新增任務輸入框" />
+        <button id="addBtn">新增</button>
+        <button id="clearCompleted" class="ghost small">清除已完成</button>
+      </div>
+
+      <ul id="taskList" aria-live="polite"></ul>
+
+      <footer>
+        <div id="counts">0 個任務</div>
+        <div>
+          <button id="exportBtn" class="ghost small">匯出 JSON</button>
+          <button id="importBtn" class="ghost small">匯入 JSON</button>
+        </div>
+      </footer>
+    </div>
+  </div>
+
+  <script>
+    const STORAGE_KEY = 'todoList_v1';
+    const taskInput = document.getElementById('taskInput');
+    const addBtn = document.getElementById('addBtn');
+    const taskList = document.getElementById('taskList');
+    const counts = document.getElementById('counts');
+    const clearCompleted = document.getElementById('clearCompleted');
+    const exportBtn = document.getElementById('exportBtn');
+    const importBtn = document.getElementById('importBtn');
+
+    let todos = [];
+
+    function load() {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        todos = raw ? JSON.parse(raw) : [];
+      } catch (e) {
+        console.error('讀取 Local Storage 失敗', e);
+        todos = [];
+      }
+      render();
+    }
+
+    function save() {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(todos));
+    }
+
+    function uid() {
+      return Date.now().toString(36) + Math.random().toString(36).slice(2,8);
+    }
+
+    function addTask(text) {
+      const t = text.trim();
+      if (!t) return;
+      todos.unshift({id: uid(), text: t, done: false, createdAt: new Date().toISOString()});
+      save();
+      render();
+      taskInput.value = '';
+      taskInput.focus();
+    }
+
+    function removeTask(id) {
+      todos = todos.filter(t=>t.id !== id);
+      save();
+      render();
+    }
+
+    function toggleDone(id) {
+      todos = todos.map(t => t.id===id ? {...t, done: !t.done} : t);
+      save();
+      render();
+    }
+
+    function clearDone() {
+      todos = todos.filter(t => !t.done);
+      save();
+      render();
+    }
+
+    function render() {
+      taskList.innerHTML = '';
+      if (todos.length === 0) {
+        const li = document.createElement('li');
+        li.style.justifyContent = 'center';
+        li.style.color = 'var(--muted)';
+        li.textContent = '目前沒有待辦事項';
+        taskList.appendChild(li);
+      } else {
+        todos.forEach(t => {
+          const li = document.createElement('li');
+          li.className = t.done ? 'completed' : '';
+
+          const check = document.createElement('div');
+          check.className = 'check' + (t.done ? ' checked' : '');
+          check.tabIndex = 0;
+          check.setAttribute('role','button');
+          check.setAttribute('aria-pressed', String(!!t.done));
+          check.innerHTML = t.done ? '✓' : '';
+          check.addEventListener('click', ()=> toggleDone(t.id));
+          check.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggleDone(t.id); } });
+
+          const title = document.createElement('div');
+          title.className = 'title';
+          title.textContent = t.text;
+
+          const meta = document.createElement('div');
+          meta.className = 'meta';
+          const date = new Date(t.createdAt);
+          meta.textContent = date.toLocaleString();
+
+          const actions = document.createElement('div');
+          actions.className = 'actions';
+
+          const del = document.createElement('button');
+          del.className = 'ghost small';
+          del.textContent = '刪除';
+          del.addEventListener('click', function(e){
+            e.stopPropagation();
+            if (confirm('確定要刪除此任務？')) {
+              removeTask(t.id);
+            }
+          });
+
+          actions.appendChild(del);
+
+          li.appendChild(check);
+          li.appendChild(title);
+          li.appendChild(meta);
+          li.appendChild(actions);
+
+          taskList.appendChild(li);
+        });
+      }
+
+      const total = todos.length;
+      const done = todos.filter(t=>t.done).length;
+      counts.textContent = `${total} 個任務 / ${done} 已完成`;
+    }
+
+    addBtn.addEventListener('click', ()=> addTask(taskInput.value));
+    taskInput.addEventListener('keydown', e => { if (e.key === 'Enter') addTask(taskInput.value); });
+    clearCompleted.addEventListener('click', ()=> { if (confirm('清除所有已完成的任務？')) clearDone(); });
+
+    exportBtn.addEventListener('click', ()=> {
+      const data = JSON.stringify(todos, null, 2);
+      const blob = new Blob([data], {type: 'application/json'});
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url; a.download = 'todo-export.json';
+      document.body.appendChild(a); a.click(); a.remove();
+      URL.revokeObjectURL(url);
+    });
+
+    importBtn.addEventListener('click', ()=> {
+      const input = document.createElement('input');
+      input.type = 'file';
+      input.accept = 'application/json';
+      input.addEventListener('change', () => {
+        const file = input.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = () => {
+          try {
+            const parsed = JSON.parse(reader.result);
+            if (!Array.isArray(parsed)) throw new Error('格式不正確');
+            todos = parsed.map(p => ({
+              id: p.id || uid(),
+              text: String(p.text || ''),
+              done: !!p.done,
+              createdAt: p.createdAt || new Date().toISOString()
+            }));
+            save();
+            render();
+            alert('匯入完成');
+          } catch (e) {
+            alert('匯入失敗：檔案不是有效的 JSON 或結構錯誤');
+          }
+        };
+        reader.readAsText(file);
+      });
+      input.click();
+    });
+
+    load();
+    window.TODO = {get: ()=> todos, save, load};
+  </script>
+</body>
+</html>

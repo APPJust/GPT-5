@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>文字分析工具</title>
+<style>
+    body {
+        font-family: Arial, sans-serif;
+        margin: 20px;
+        background-color: #f5f5f5;
+    }
+    h1 {
+        color: #333;
+    }
+    textarea {
+        width: 100%;
+        height: 200px;
+        padding: 10px;
+        font-size: 16px;
+        margin-bottom: 15px;
+    }
+    .stats {
+        background-color: #fff;
+        padding: 15px;
+        border-radius: 8px;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    }
+    .stats p {
+        margin: 5px 0;
+        font-size: 16px;
+    }
+    .author {
+        margin-top: 20px;
+        font-size: 14px;
+        color: #666;
+    }
+</style>
+</head>
+<body>
+
+<h1>文字分析工具</h1>
+<textarea id="textInput" placeholder="在這裡輸入文字..."></textarea>
+
+<div class="stats">
+    <p>字數：<span id="charCount">0</span></p>
+    <p>詞數：<span id="wordCount">0</span></p>
+    <p>行數：<span id="lineCount">0</span></p>
+    <p>預估閱讀時間：約 <span id="readTime">0</span> 分鐘</p>
+</div>
+
+<div class="author">作者: 李振偉</div>
+
+<script>
+    const textInput = document.getElementById('textInput');
+    const charCount = document.getElementById('charCount');
+    const wordCount = document.getElementById('wordCount');
+    const lineCount = document.getElementById('lineCount');
+    const readTime = document.getElementById('readTime');
+
+    function updateStats() {
+        const text = textInput.value;
+
+        // 計算字數
+        const chars = text.replace(/\s/g, '').length;
+
+        // 計算詞數 (用空白拆分，過濾空字串)
+        const words = text.trim().split(/\s+/).filter(Boolean).length;
+
+        // 計算行數
+        const lines = text.split(/\r\n|\r|\n/).length;
+
+        // 預估閱讀時間 (平均每分鐘約 200 字)
+        const minutes = Math.ceil(words / 200);
+
+        charCount.textContent = chars;
+        wordCount.textContent = words;
+        lineCount.textContent = lines;
+        readTime.textContent = minutes;
+    }
+
+    textInput.addEventListener('input', updateStats);
+</script>
+
+</body>
+</html>

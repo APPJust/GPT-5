@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <title>像素繪圖板</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 20px;
+      background: #f0f0f0;
+    }
+    h1 {
+      margin-bottom: 10px;
+    }
+    #pixelCanvas {
+      display: grid;
+      border: 1px solid #333;
+      margin-bottom: 10px;
+      background: #fff;
+    }
+    .pixel {
+      width: 20px;
+      height: 20px;
+      border: 1px solid #ddd;
+      box-sizing: border-box;
+    }
+    #controls {
+      margin-bottom: 10px;
+    }
+    #controls > * {
+      margin-right: 10px;
+    }
+    #author {
+      margin-top: 20px;
+      font-size: 0.9em;
+      color: #555;
+    }
+  </style>
+</head>
+<body>
+  <h1>像素繪圖板</h1>
+  <div id="controls">
+    <label>選擇顏色: <input type="color" id="colorPicker" value="#000000"></label>
+    <label>格子大小: <input type="number" id="gridSize" value="16" min="4" max="64"></label>
+    <button id="createGrid">建立畫布</button>
+    <button id="clearGrid">清空畫布</button>
+    <button id="exportPNG">匯出 PNG</button>
+  </div>
+  <div id="pixelCanvas"></div>
+  <div id="author">作者:李振偉</div>
+
+  <script>
+    const canvas = document.getElementById('pixelCanvas');
+    const colorPicker = document.getElementById('colorPicker');
+    const gridSizeInput = document.getElementById('gridSize');
+    const createGridBtn = document.getElementById('createGrid');
+    const clearGridBtn = document.getElementById('clearGrid');
+    const exportBtn = document.getElementById('exportPNG');
+
+    let currentColor = colorPicker.value;
+    let isDrawing = false;
+
+    function createGrid(size) {
+      canvas.innerHTML = '';
+      canvas.style.gridTemplateColumns = `repeat(${size}, 20px)`;
+      canvas.style.gridTemplateRows = `repeat(${size}, 20px)`;
+      for (let i = 0; i < size * size; i++) {
+        const pixel = document.createElement('div');
+        pixel.classList.add('pixel');
+        pixel.addEventListener('mousedown', () => {
+          pixel.style.backgroundColor = currentColor;
+        });
+        pixel.addEventListener('mouseover', (e) => {
+          if (isDrawing) pixel.style.backgroundColor = currentColor;
+        });
+        canvas.appendChild(pixel);
+      }
+    }
+
+    colorPicker.addEventListener('input', (e) => {
+      currentColor = e.target.value;
+    });
+
+    createGridBtn.addEventListener('click', () => {
+      const size = parseInt(gridSizeInput.value);
+      createGrid(size);
+    });
+
+    clearGridBtn.addEventListener('click', () => {
+      const pixels = canvas.querySelectorAll('.pixel');
+      pixels.forEach(p => p.style.backgroundColor = '');
+    });
+
+    exportBtn.addEventListener('click', () => {
+      const size = parseInt(gridSizeInput.value);
+      const canvasElement = document.createElement('canvas');
+      canvasElement.width = size;
+      canvasElement.height = size;
+      const ctx = canvasElement.getContext('2d');
+      const pixels = canvas.querySelectorAll('.pixel');
+      pixels.forEach((p, index) => {
+        const x = index % size;
+        const y = Math.floor(index / size);
+        ctx.fillStyle = p.style.backgroundColor || '#ffffff';
+        ctx.fillRect(x, y, 1, 1);
+      });
+      const link = document.createElement('a');
+      link.download = 'pixel-art.png';
+      link.href = canvasElement.toDataURL();
+      link.click();
+    });
+
+    document.body.addEventListener('mousedown', () => isDrawing = true);
+    document.body.addEventListener('mouseup', () => isDrawing = false);
+
+    // 初始化畫布
+    createGrid(parseInt(gridSizeInput.value));
+  </script>
+</body>
+</html>

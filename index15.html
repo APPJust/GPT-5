@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>貓咪知識產生器</title>
+    <style>
+        body {
+            font-family: "微軟正黑體", sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            background-color: #fff8f0;
+            margin: 0;
+        }
+        h1 {
+            color: #ff6666;
+        }
+        button {
+            padding: 10px 20px;
+            font-size: 16px;
+            margin-top: 20px;
+            cursor: pointer;
+            background-color: #ff9999;
+            border: none;
+            border-radius: 5px;
+            color: white;
+            transition: background-color 0.3s;
+        }
+        button:hover {
+            background-color: #ff4d4d;
+        }
+        #fact {
+            margin-top: 30px;
+            font-size: 20px;
+            color: #333;
+            text-align: center;
+            max-width: 600px;
+        }
+        footer {
+            margin-top: 50px;
+            font-size: 14px;
+            color: #888;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>貓咪知識產生器</h1>
+    <button id="generateBtn">隨機生成貓咪知識 🐱</button>
+    <div id="fact">點擊上方按鈕來獲取一條貓咪冷知識！</div>
+    <footer>作者: 李振偉</footer>
+
+    <script>
+        const button = document.getElementById('generateBtn');
+        const factDiv = document.getElementById('fact');
+
+        button.addEventListener('click', async () => {
+            try {
+                const response = await fetch('https://catfact.ninja/fact');
+                const data = await response.json();
+                factDiv.textContent = data.fact;
+            } catch (error) {
+                factDiv.textContent = "抱歉，無法取得貓咪知識，請稍後再試。";
+                console.error(error);
+            }
+        });
+    </script>
+
+</body>
+</html>

@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>密碼產生器與強度檢測</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 500px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #f7f7f7;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }
+        h1, h2 {
+            text-align: center;
+        }
+        label {
+            display: block;
+            margin: 10px 0 5px;
+        }
+        input[type="text"], input[type="number"], input[type="password"] {
+            width: 100%;
+            padding: 8px;
+            border-radius: 5px;
+            border: 1px solid #ccc;
+            margin-bottom: 10px;
+        }
+        button {
+            padding: 10px 15px;
+            border: none;
+            border-radius: 5px;
+            background: #007bff;
+            color: white;
+            cursor: pointer;
+        }
+        button:hover {
+            background: #0056b3;
+        }
+        .strength {
+            font-weight: bold;
+            margin-top: 5px;
+        }
+        .weak { color: red; }
+        .medium { color: orange; }
+        .strong { color: green; }
+        footer {
+            text-align: center;
+            margin-top: 20px;
+            color: #666;
+        }
+    </style>
+</head>
+<body>
+    <h1>密碼產生器與強度檢測</h1>
+
+    <h2>生成隨機密碼</h2>
+    <label for="length">密碼長度：</label>
+    <input type="number" id="length" value="12" min="4" max="32">
+    
+    <label><input type="checkbox" id="includeNumbers" checked> 包含數字</label>
+    <label><input type="checkbox" id="includeSymbols" checked> 包含符號</label>
+    
+    <button onclick="generatePassword()">生成密碼</button>
+    <input type="text" id="generatedPassword" readonly>
+
+    <h2>密碼強度檢測</h2>
+    <label for="userPassword">輸入密碼：</label>
+    <input type="password" id="userPassword" oninput="checkStrength()">
+    <div id="strengthIndicator" class="strength"></div>
+
+    <footer>作者:李振偉</footer>
+
+    <script>
+        function generatePassword() {
+            const length = parseInt(document.getElementById('length').value);
+            const includeNumbers = document.getElementById('includeNumbers').checked;
+            const includeSymbols = document.getElementById('includeSymbols').checked;
+
+            let charset = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
+            if (includeNumbers) charset += "0123456789";
+            if (includeSymbols) charset += "!@#$%^&*()_+[]{}|;:,.<>?";
+
+            let password = "";
+            for (let i = 0; i < length; i++) {
+                const randomIndex = Math.floor(Math.random() * charset.length);
+                password += charset[randomIndex];
+            }
+
+            document.getElementById('generatedPassword').value = password;
+            checkStrength(password);
+        }
+
+        function checkStrength(passwordInput) {
+            const password = passwordInput || document.getElementById('userPassword').value;
+            let strength = "弱";
+            let className = "weak";
+
+            if (password.length >= 8) {
+                const hasLower = /[a-z]/.test(password);
+                const hasUpper = /[A-Z]/.test(password);
+                const hasNumber = /[0-9]/.test(password);
+                const hasSymbol = /[!@#$%^&*()_+\[\]{}|;:,.<>?]/.test(password);
+                const passedCriteria = [hasLower, hasUpper, hasNumber, hasSymbol].filter(Boolean).length;
+
+                if (passedCriteria >= 3) {
+                    strength = "中";
+                    className = "medium";
+                }
+                if (passedCriteria === 4 && password.length >= 12) {
+                    strength = "強";
+                    className = "strong";
+                }
+            }
+
+            document.getElementById('strengthIndicator').textContent = `密碼強度: ${strength}`;
+            document.getElementById('strengthIndicator').className = `strength ${className}`;
+        }
+    </script>
+</body>
+</html>

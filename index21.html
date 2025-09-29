@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<title>打磚塊遊戲</title>
+<style>
+  body {
+    margin: 0;
+    padding: 0;
+    background: #222;
+    color: #fff;
+    font-family: sans-serif;
+    text-align: center;
+  }
+  canvas {
+    display: block;
+    margin: 20px auto;
+    background: #111;
+    border: 2px solid #fff;
+  }
+  #author {
+    margin-top: 10px;
+    font-size: 14px;
+  }
+</style>
+</head>
+<body>
+<h1>打磚塊遊戲</h1>
+<canvas id="gameCanvas" width="800" height="600"></canvas>
+<div id="author">作者:李振偉</div>
+
+<script>
+const canvas = document.getElementById('gameCanvas');
+const ctx = canvas.getContext('2d');
+
+let paddleWidth = 100;
+let paddleHeight = 15;
+let paddleX = (canvas.width - paddleWidth) / 2;
+
+let ballRadius = 10;
+let x = canvas.width / 2;
+let y = canvas.height - 30;
+let dx = 4;
+let dy = -4;
+
+const brickRowCount = 5;
+const brickColumnCount = 8;
+const brickWidth = 75;
+const brickHeight = 20;
+const brickPadding = 10;
+const brickOffsetTop = 30;
+const brickOffsetLeft = 30;
+
+let score = 0;
+let level = 1;
+let lives = 3;
+
+let bricks = [];
+
+function initBricks() {
+  bricks = [];
+  for(let c=0; c<brickColumnCount; c++) {
+    bricks[c] = [];
+    for(let r=0; r<brickRowCount; r++) {
+      bricks[c][r] = { x: 0, y: 0, status: 1 };
+    }
+  }
+}
+
+initBricks();
+
+// 滑鼠控制擋板
+document.addEventListener("mousemove", mouseMoveHandler, false);
+function mouseMoveHandler(e) {
+  let relativeX = e.clientX - canvas.offsetLeft;
+  if(relativeX > 0 && relativeX < canvas.width) {
+    paddleX = relativeX - paddleWidth/2;
+  }
+}
+
+// 碰撞檢測
+function collisionDetection() {
+  for(let c=0; c<brickColumnCount; c++) {
+    for(let r=0; r<brickRowCount; r++) {
+      let b = bricks[c][r];
+      if(b.status == 1) {
+        if(x > b.x && x < b.x+brickWidth && y > b.y && y < b.y+brickHeight) {
+          dy = -dy;
+          b.status = 0;
+          score++;
+          if(score == brickRowCount * brickColumnCount * level) {
+            level++;
+            dx += 1;
+            dy = -dy - 1;
+            initBricks();
+            x = canvas.width / 2;
+            y = canvas.height - 30;
+          }
+        }
+      }
+    }
+  }
+}
+
+// 畫球
+function drawBall() {
+  ctx.beginPath();
+  ctx.arc(x, y, ballRadius, 0, Math.PI*2);
+  ctx.fillStyle = "#00ff00";
+  ctx.fill();
+  ctx.closePath();
+}
+
+// 畫擋板
+function drawPaddle() {
+  ctx.beginPath();
+  ctx.rect(paddleX, canvas.height - paddleHeight, paddleWidth, paddleHeight);
+  ctx.fillStyle = "#00f";
+  ctx.fill();
+  ctx.closePath();
+}
+
+// 畫磚塊
+function drawBricks() {
+  for(let c=0; c<brickColumnCount; c++) {
+    for(let r=0; r<brickRowCount; r++) {
+      if(bricks[c][r].status == 1) {
+        let brickX = (c*(brickWidth+brickPadding))+brickOffsetLeft;
+        let brickY = (r*(brickHeight+brickPadding))+brickOffsetTop;
+        bricks[c][r].x = brickX;
+        bricks[c][r].y = brickY;
+        ctx.beginPath();
+        ctx.rect(brickX, brickY, brickWidth, brickHeight);
+        ctx.fillStyle = "#f00";
+        ctx.fill();
+        ctx.closePath();
+      }
+    }
+  }
+}
+
+// 畫分數與生命
+function drawScore() {
+  ctx.font = "16px Arial";
+  ctx.fillStyle = "#fff";
+  ctx.fillText("分數: " + score, 8, 20);
+}
+
+function drawLives() {
+  ctx.font = "16px Arial";
+  ctx.fillStyle = "#fff";
+  ctx.fillText("生命: " + lives, canvas.width-80, 20);
+}
+
+function drawLevel() {
+  ctx.font = "16px Arial";
+  ctx.fillStyle = "#fff";
+  ctx.fillText("關卡: " + level, canvas.width/2 - 30, 20);
+}
+
+// 遊戲主迴圈
+function draw() {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  drawBricks();
+  drawBall();
+  drawPaddle();
+  drawScore();
+  drawLives();
+  drawLevel();
+  collisionDetection();
+
+  // 球碰牆
+  if(x + dx > canvas.width - ballRadius || x + dx < ballRadius) {
+    dx = -dx;
+  }
+  if(y + dy < ballRadius) {
+    dy = -dy;
+  } else if(y + dy > canvas.height - ballRadius) {
+    if(x > paddleX && x < paddleX + paddleWidth) {
+      dy = -dy;
+    } else {
+      lives--;
+      if(!lives) {
+        alert("遊戲結束! 分數: " + score);
+        document.location.reload();
+      } else {
+        x = canvas.width/2;
+        y = canvas.height-30;
+        dx = 4 + level - 1;
+        dy = -4 - level + 1;
+        paddleX = (canvas.width-paddleWidth)/2;
+      }
+    }
+  }
+
+  x += dx;
+  y += dy;
+  requestAnimationFrame(draw);
+}
+
+draw();
+</script>
+</body>
+</html>

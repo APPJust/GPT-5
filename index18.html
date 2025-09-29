@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>IP 地理位置查詢</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      padding: 20px;
+      background: #f0f8ff;
+    }
+    h1 {
+      color: #333;
+    }
+    input[type="text"] {
+      padding: 8px;
+      width: 200px;
+      margin-right: 10px;
+    }
+    button {
+      padding: 8px 12px;
+      cursor: pointer;
+    }
+    .result {
+      margin-top: 20px;
+      background: #fff;
+      padding: 15px;
+      border-radius: 8px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+    }
+    footer {
+      margin-top: 30px;
+      font-size: 0.9em;
+      color: #666;
+    }
+  </style>
+</head>
+<body>
+  <h1>IP 地理位置查詢</h1>
+  <p>自動偵測或輸入 IP：</p>
+  <input type="text" id="ipInput" placeholder="輸入 IP">
+  <button onclick="checkIP()">查詢 IP</button>
+  <button onclick="autoDetectIP()">自動偵測我的 IP</button>
+
+  <div class="result" id="result"></div>
+
+  <footer>作者: 李振偉</footer>
+
+  <script>
+    async function checkIP() {
+      const ip = document.getElementById('ipInput').value.trim();
+      if (!ip) {
+        alert('請輸入 IP 或使用自動偵測功能！');
+        return;
+      }
+      const url = `http://ip-api.com/json/${ip}?lang=zh-TW`;
+      try {
+        const res = await fetch(url);
+        const data = await res.json();
+        if(data.status === "fail") {
+          document.getElementById('result').innerHTML = `<p>查詢失敗: ${data.message}</p>`;
+        } else {
+          displayResult(data);
+        }
+      } catch (err) {
+        document.getElementById('result').innerHTML = `<p>發生錯誤: ${err}</p>`;
+      }
+    }
+
+    async function autoDetectIP() {
+      const url = `http://ip-api.com/json/?lang=zh-TW`;
+      try {
+        const res = await fetch(url);
+        const data = await res.json();
+        if(data.status === "fail") {
+          document.getElementById('result').innerHTML = `<p>查詢失敗: ${data.message}</p>`;
+        } else {
+          displayResult(data);
+        }
+      } catch (err) {
+        document.getElementById('result').innerHTML = `<p>發生錯誤: ${err}</p>`;
+      }
+    }
+
+    function displayResult(data) {
+      document.getElementById('result').innerHTML = `
+        <p><strong>IP:</strong> ${data.query}</p>
+        <p><strong>國家:</strong> ${data.country}</p>
+        <p><strong>城市:</strong> ${data.city}</p>
+        <p><strong>ISP:</strong> ${data.isp}</p>
+      `;
+    }
+  </script>
+</body>
+</html>

@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>網頁合成器</title>
+<style>
+  body {
+    font-family: Arial, sans-serif;
+    text-align: center;
+    background: #1e1e1e;
+    color: white;
+  }
+  h1 {
+    margin-top: 20px;
+  }
+  #keyboard {
+    display: flex;
+    justify-content: center;
+    flex-wrap: wrap;
+    margin-top: 20px;
+  }
+  .key {
+    width: 60px;
+    height: 200px;
+    margin: 2px;
+    border-radius: 5px;
+    background: white;
+    color: black;
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    cursor: pointer;
+    user-select: none;
+    position: relative;
+    box-shadow: 0 4px #999;
+  }
+  .key:active {
+    background: #ddd;
+    box-shadow: 0 2px #666;
+    transform: translateY(2px);
+  }
+  .key.black {
+    width: 40px;
+    height: 130px;
+    background: black;
+    color: white;
+    margin-left: -20px;
+    margin-right: -20px;
+    z-index: 1;
+    box-shadow: 0 4px #555;
+  }
+  footer {
+    margin-top: 40px;
+    font-size: 14px;
+    color: #aaa;
+  }
+</style>
+</head>
+<body>
+
+<h1>網頁合成器</h1>
+<div id="keyboard"></div>
+<footer>作者:李振偉</footer>
+
+<script>
+  // 音符對應頻率 (簡單 C4 ~ C5)
+  const notes = [
+    {note: 'C4', freq: 261.63},
+    {note: 'C#4', freq: 277.18, black: true},
+    {note: 'D4', freq: 293.66},
+    {note: 'D#4', freq: 311.13, black: true},
+    {note: 'E4', freq: 329.63},
+    {note: 'F4', freq: 349.23},
+    {note: 'F#4', freq: 369.99, black: true},
+    {note: 'G4', freq: 392.00},
+    {note: 'G#4', freq: 415.30, black: true},
+    {note: 'A4', freq: 440.00},
+    {note: 'A#4', freq: 466.16, black: true},
+    {note: 'B4', freq: 493.88},
+    {note: 'C5', freq: 523.25}
+  ];
+
+  const keyboard = document.getElementById('keyboard');
+  const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+
+  function playNote(freq) {
+    const oscillator = audioCtx.createOscillator();
+    const gainNode = audioCtx.createGain();
+    oscillator.type = 'sine'; // 波形：sine, square, sawtooth, triangle
+    oscillator.frequency.value = freq;
+    oscillator.connect(gainNode);
+    gainNode.connect(audioCtx.destination);
+    gainNode.gain.setValueAtTime(0.3, audioCtx.currentTime); // 音量
+    oscillator.start();
+    oscillator.stop(audioCtx.currentTime + 0.5); // 播放 0.5 秒
+  }
+
+  // 生成鍵盤
+  notes.forEach(n => {
+    const key = document.createElement('div');
+    key.className = 'key';
+    if (n.black) key.classList.add('black');
+    key.textContent = n.note;
+    key.onclick = () => playNote(n.freq);
+    keyboard.appendChild(key);
+  });
+</script>
+
+</body>
+</html>

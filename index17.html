@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>假資料產生器 - 部落格</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 0 20px;
+      background-color: #f4f4f4;
+    }
+    header {
+      background-color: #4CAF50;
+      color: white;
+      padding: 10px 20px;
+      text-align: center;
+    }
+    .author {
+      font-size: 0.9em;
+      margin-top: 5px;
+    }
+    .post {
+      background: white;
+      margin: 15px 0;
+      padding: 15px;
+      border-radius: 8px;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    }
+    .post h2 {
+      margin-top: 0;
+    }
+    .comments {
+      margin-top: 10px;
+      padding-left: 15px;
+      border-left: 3px solid #4CAF50;
+    }
+    .comment {
+      background-color: #f9f9f9;
+      padding: 8px;
+      margin-bottom: 5px;
+      border-radius: 5px;
+    }
+    button {
+      padding: 8px 12px;
+      border: none;
+      background-color: #4CAF50;
+      color: white;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+    button:hover {
+      background-color: #45a049;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>假資料產生器 - 部落格</h1>
+    <div class="author">作者: 李振偉</div>
+  </header>
+
+  <main>
+    <button id="loadPosts">載入文章</button>
+    <div id="posts"></div>
+  </main>
+
+  <script>
+    const postsContainer = document.getElementById('posts');
+    const loadPostsBtn = document.getElementById('loadPosts');
+
+    loadPostsBtn.addEventListener('click', async () => {
+      postsContainer.innerHTML = '<p>載入中...</p>';
+
+      try {
+        // 取得文章列表
+        const postsResponse = await fetch('https://jsonplaceholder.typicode.com/posts');
+        const posts = await postsResponse.json();
+
+        postsContainer.innerHTML = '';
+        posts.slice(0, 5).forEach(async (post) => { // 只顯示前5篇文章
+          const postDiv = document.createElement('div');
+          postDiv.className = 'post';
+          postDiv.innerHTML = `<h2>${post.title}</h2><p>${post.body}</p>`;
+
+          // 創建留言容器
+          const commentsDiv = document.createElement('div');
+          commentsDiv.className = 'comments';
+          commentsDiv.innerHTML = '<p>載入留言中...</p>';
+          postDiv.appendChild(commentsDiv);
+
+          postsContainer.appendChild(postDiv);
+
+          // 取得留言
+          const commentsResponse = await fetch(`https://jsonplaceholder.typicode.com/posts/${post.id}/comments`);
+          const comments = await commentsResponse.json();
+
+          commentsDiv.innerHTML = '';
+          comments.slice(0, 3).forEach(comment => { // 顯示前三則留言
+            const commentDiv = document.createElement('div');
+            commentDiv.className = 'comment';
+            commentDiv.innerHTML = `<strong>${comment.name}</strong> (${comment.email}):<br>${comment.body}`;
+            commentsDiv.appendChild(commentDiv);
+          });
+        });
+      } catch (error) {
+        postsContainer.innerHTML = '<p>載入失敗，請稍後再試。</p>';
+        console.error(error);
+      }
+    });
+  </script>
+</body>
+</html>

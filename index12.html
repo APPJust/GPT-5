@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>食譜搜尋器</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            background-color: #fff8f0;
+        }
+        h1 {
+            text-align: center;
+        }
+        #author {
+            text-align: center;
+            margin-bottom: 20px;
+            font-style: italic;
+            color: #555;
+        }
+        input[type="text"] {
+            padding: 10px;
+            width: 70%;
+            font-size: 16px;
+        }
+        button {
+            padding: 10px 20px;
+            font-size: 16px;
+            cursor: pointer;
+            background-color: #ff7f50;
+            color: white;
+            border: none;
+            border-radius: 5px;
+        }
+        .recipes {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+            margin-top: 20px;
+            justify-content: center;
+        }
+        .recipe-card {
+            width: 200px;
+            border: 1px solid #ccc;
+            border-radius: 10px;
+            overflow: hidden;
+            text-align: center;
+            background-color: #fff;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        .recipe-card img {
+            width: 100%;
+            height: 150px;
+            object-fit: cover;
+        }
+        .recipe-card a {
+            display: block;
+            padding: 10px;
+            text-decoration: none;
+            color: #ff7f50;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <h1>食譜搜尋器</h1>
+    <div id="author">作者: 李振偉</div>
+
+    <div style="text-align:center;">
+        <input type="text" id="ingredient" placeholder="輸入食材關鍵字，例如: chicken">
+        <button onclick="searchRecipes()">搜尋食譜</button>
+    </div>
+
+    <div class="recipes" id="recipes"></div>
+
+    <script>
+        async function searchRecipes() {
+            const ingredient = document.getElementById('ingredient').value.trim();
+            const recipesDiv = document.getElementById('recipes');
+            recipesDiv.innerHTML = '';
+
+            if (!ingredient) {
+                alert('請輸入食材關鍵字');
+                return;
+            }
+
+            try {
+                const response = await fetch(`https://www.themealdb.com/api/json/v1/1/filter.php?i=${ingredient}`);
+                const data = await response.json();
+
+                if (!data.meals) {
+                    recipesDiv.innerHTML = '<p>找不到相關食譜。</p>';
+                    return;
+                }
+
+                data.meals.forEach(meal => {
+                    const card = document.createElement('div');
+                    card.className = 'recipe-card';
+                    card.innerHTML = `
+                        <img src="${meal.strMealThumb}" alt="${meal.strMeal}">
+                        <a href="https://www.themealdb.com/meal/${meal.idMeal}" target="_blank">${meal.strMeal}</a>
+                    `;
+                    recipesDiv.appendChild(card);
+                });
+            } catch (error) {
+                console.error('搜尋食譜出錯:', error);
+                recipesDiv.innerHTML = '<p>發生錯誤，請稍後再試。</p>';
+            }
+        }
+    </script>
+</body>
+</html>

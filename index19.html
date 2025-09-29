@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<title>2D 貪食蛇遊戲</title>
+<style>
+  body {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    font-family: Arial, sans-serif;
+    background-color: #f0f0f0;
+  }
+  canvas {
+    background-color: #222;
+    margin-top: 20px;
+    border: 2px solid #000;
+  }
+  h1, p {
+    margin: 5px;
+  }
+  #author {
+    margin-top: 10px;
+    font-size: 14px;
+    color: #555;
+  }
+</style>
+</head>
+<body>
+
+<h1>2D 貪食蛇遊戲</h1>
+<p>分數: <span id="score">0</span> | 最高分: <span id="highScore">0</span></p>
+<canvas id="gameCanvas" width="600" height="600"></canvas>
+<p id="author">作者: 李振偉</p>
+
+<script>
+const canvas = document.getElementById('gameCanvas');
+const ctx = canvas.getContext('2d');
+
+const box = 20; // 每格大小
+let snake = [{ x: 15 * box, y: 15 * box }];
+let direction = 'RIGHT';
+let food = {
+    x: Math.floor(Math.random() * 30) * box,
+    y: Math.floor(Math.random() * 30) * box
+};
+let score = 0;
+
+// 讀取最高分
+let highScore = localStorage.getItem('snakeHighScore') || 0;
+document.getElementById('highScore').textContent = highScore;
+
+// 鍵盤控制
+document.addEventListener('keydown', (event) => {
+    if (event.key === 'ArrowUp' && direction !== 'DOWN') direction = 'UP';
+    else if (event.key === 'ArrowDown' && direction !== 'UP') direction = 'DOWN';
+    else if (event.key === 'ArrowLeft' && direction !== 'RIGHT') direction = 'LEFT';
+    else if (event.key === 'ArrowRight' && direction !== 'LEFT') direction = 'RIGHT';
+});
+
+// 檢查碰撞
+function collision(head, array) {
+    for (let i = 0; i < array.length; i++) {
+        if (head.x === array[i].x && head.y === array[i].y) return true;
+    }
+    return false;
+}
+
+// 遊戲主循環
+function draw() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    // 畫蛇
+    for (let i = 0; i < snake.length; i++) {
+        ctx.fillStyle = (i === 0) ? 'lime' : 'white';
+        ctx.fillRect(snake[i].x, snake[i].y, box, box);
+        ctx.strokeStyle = 'black';
+        ctx.strokeRect(snake[i].x, snake[i].y, box, box);
+    }
+
+    // 畫食物
+    ctx.fillStyle = 'red';
+    ctx.fillRect(food.x, food.y, box, box);
+
+    // 蛇頭位置
+    let snakeX = snake[0].x;
+    let snakeY = snake[0].y;
+
+    if (direction === 'LEFT') snakeX -= box;
+    if (direction === 'RIGHT') snakeX += box;
+    if (direction === 'UP') snakeY -= box;
+    if (direction === 'DOWN') snakeY += box;
+
+    // 吃到食物
+    if (snakeX === food.x && snakeY === food.y) {
+        score++;
+        document.getElementById('score').textContent = score;
+        food = {
+            x: Math.floor(Math.random() * 30) * box,
+            y: Math.floor(Math.random() * 30) * box
+        };
+    } else {
+        snake.pop(); // 移除尾巴
+    }
+
+    // 新的蛇頭
+    const newHead = { x: snakeX, y: snakeY };
+
+    // 遊戲結束條件
+    if (
+        snakeX < 0 || snakeX >= canvas.width ||
+        snakeY < 0 || snakeY >= canvas.height ||
+        collision(newHead, snake)
+    ) {
+        alert('遊戲結束! 分數: ' + score);
+        // 更新最高分
+        if (score > highScore) {
+            highScore = score;
+            localStorage.setItem('snakeHighScore', highScore);
+        }
+        score = 0;
+        document.getElementById('score').textContent = score;
+        document.getElementById('highScore').textContent = highScore;
+        snake = [{ x: 15 * box, y: 15 * box }];
+        direction = 'RIGHT';
+        food = {
+            x: Math.floor(Math.random() * 30) * box,
+            y: Math.floor(Math.random() * 30) * box
+        };
+    }
+
+    snake.unshift(newHead);
+}
+
+// 速度慢一點，每 200ms 更新一次
+setInterval(draw, 200);
+</script>
+
+</body>
+</html>

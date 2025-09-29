@@ -1,0 +1,245 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>程式碼片段管理器 - 作者:李振偉</title>
+  <style>
+    :root{--bg:#0f1724;--card:#0b1220;--muted:#9aa4b2;--accent:#7c3aed}
+    *{box-sizing:border-box;font-family:system-ui,-apple-system,Segoe UI,Roboto,"Noto Sans TC","Microsoft JhengHei",sans-serif}
+    body{margin:0;background:linear-gradient(180deg,#071026 0%, #0b1220 100%);color:#e6eef6;padding:24px}
+    header{display:flex;align-items:center;justify-content:space-between;margin-bottom:18px}
+    h1{margin:0;font-size:20px}
+    .author{font-size:13px;color:var(--muted)}
+    .container{display:grid;grid-template-columns:360px 1fr;gap:18px}
+    .card{background:var(--card);border-radius:10px;padding:14px;box-shadow:0 6px 20px rgba(2,6,23,.6)}
+    label{display:block;font-size:13px;color:var(--muted);margin-bottom:6px}
+    input[type=text],select,textarea{width:100%;padding:8px;border-radius:8px;border:1px solid rgba(255,255,255,.04);background:transparent;color:inherit}
+    textarea{min-height:160px;font-family:Menlo, Monaco, Consolas, monospace;font-size:13px}
+    .actions{display:flex;gap:8px;margin-top:10px}
+    button{background:var(--accent);border:none;padding:8px 12px;border-radius:8px;color:white;cursor:pointer}
+    button.ghost{background:transparent;border:1px solid rgba(255,255,255,.06)}
+    .list{display:flex;flex-direction:column;gap:10px}
+    .snippet{padding:10px;border-radius:8px;background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));display:flex;justify-content:space-between;align-items:flex-start}
+    .meta{font-size:13px;color:var(--muted)}
+    .tags{margin-top:6px;font-size:12px;color:#cbd5e1}
+    .controls{display:flex;gap:8px}
+    .search-row{display:flex;gap:8px;margin-bottom:10px}
+    .empty{color:var(--muted);padding:20px;text-align:center}
+    .topbar{display:flex;gap:8px;align-items:center}
+    .pill{background:rgba(255,255,255,0.03);padding:6px 8px;border-radius:999px;font-size:12px}
+    .small{font-size:12px}
+    @media(max-width:900px){.container{grid-template-columns:1fr;}}
+  </style>
+</head>
+<body>
+  <header>
+    <div>
+      <h1>程式碼片段管理器</h1>
+      <div class="author">作者: 李振偉</div>
+    </div>
+    <div class="topbar">
+      <div class="pill small">Local Storage 儲存</div>
+      <div class="pill small" id="count">0 片段</div>
+    </div>
+  </header>
+
+  <div class="container">
+    <div class="card">
+      <h2 style="margin-top:0;font-size:16px">新增 / 編輯片段</h2>
+      <form id="snippetForm">
+        <input type="hidden" id="snippetId" />
+        <label>標題</label>
+        <input type="text" id="title" placeholder="例如：快速排序 - JS" required />
+
+        <label>類別</label>
+        <select id="category">
+          <option value="一般">一般</option>
+          <option value="演算法">演算法</option>
+          <option value="UI">UI</option>
+          <option value="工具">工具</option>
+        </select>
+
+        <label>標籤（用逗號分隔）</label>
+        <input type="text" id="tags" placeholder="例如：排序,陣列,JS" />
+
+        <label>程式語言</label>
+        <input type="text" id="language" placeholder="例如：JavaScript、Python" />
+
+        <label>程式碼</label>
+        <textarea id="code" placeholder="在此貼上程式碼..." required></textarea>
+
+        <div class="actions">
+          <button type="submit" id="saveBtn">儲存片段</button>
+          <button type="button" id="resetBtn" class="ghost">清除</button>
+          <button type="button" id="exportBtn" class="ghost">匯出 JSON</button>
+        </div>
+      </form>
+    </div>
+
+    <div class="card">
+      <div class="search-row">
+        <input type="text" id="search" placeholder="搜尋標題、標籤或語言..." />
+        <select id="filterCategory">
+          <option value="">所有類別</option>
+        </select>
+        <button id="newBtn" class="ghost">新增片段</button>
+      </div>
+      <div class="list" id="list">
+        <div class="empty">載入中...</div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const STORAGE_KEY = 'code_snippets_v1';
+
+    const form = document.getElementById('snippetForm');
+    const titleEl = document.getElementById('title');
+    const categoryEl = document.getElementById('category');
+    const tagsEl = document.getElementById('tags');
+    const languageEl = document.getElementById('language');
+    const codeEl = document.getElementById('code');
+    const idEl = document.getElementById('snippetId');
+    const listEl = document.getElementById('list');
+    const countEl = document.getElementById('count');
+    const searchEl = document.getElementById('search');
+    const filterCategoryEl = document.getElementById('filterCategory');
+    const newBtn = document.getElementById('newBtn');
+    const resetBtn = document.getElementById('resetBtn');
+    const exportBtn = document.getElementById('exportBtn');
+
+    function loadSnippets(){
+      try { return JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]'); } 
+      catch(e){ console.error(e); return []; }
+    }
+    function saveSnippets(list){
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(list));
+      renderList();
+    }
+
+    function escapeHtml(str){
+      if(!str) return '';
+      return String(str).replace(/[&<>"']/g, s=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;','\'":'&#39;' }[s]||s));
+    }
+
+    function uid(){ return 's_' + Math.random().toString(36).slice(2,9); }
+
+    function renderList(){
+      const list = loadSnippets();
+      countEl.textContent = `${list.length} 片段`;
+      const cats = Array.from(new Set(list.map(s=>s.category || '一般'))).sort();
+      filterCategoryEl.innerHTML = '<option value="">所有類別</option>' + cats.map(c=>`<option value="${escapeHtml(c)}">${escapeHtml(c)}</option>`).join('');
+      const q = (searchEl.value||'').trim().toLowerCase();
+      const filterCat = filterCategoryEl.value;
+      const filtered = list.filter(s=>{
+        if(filterCat && s.category !== filterCat) return false;
+        if(!q) return true;
+        return (s.title||'').toLowerCase().includes(q) || (s.language||'').toLowerCase().includes(q) || (s.tags||'').toLowerCase().includes(q);
+      });
+      if(filtered.length===0){
+        listEl.innerHTML = '<div class="empty">沒有找到片段 — 可以新增一個</div>';
+        return;
+      }
+      listEl.innerHTML = '';
+      filtered.sort((a,b)=> (a.title||'').localeCompare(b.title||''));
+      filtered.forEach(s=>{
+        const item = document.createElement('div');
+        item.className = 'snippet';
+        item.innerHTML = `
+          <div style="flex:1;min-width:0">
+            <div style="display:flex;justify-content:space-between;gap:8px;align-items:center">
+              <div style="font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${escapeHtml(s.title)}</div>
+              <div class="meta small">${escapeHtml(s.language||'')}</div>
+            </div>
+            <div class="meta">${escapeHtml(s.category||'一般')}</div>
+            <div class="tags">${escapeHtml(s.tags||'')}</div>
+          </div>
+          <div class="controls">
+            <button class="ghost" data-action="view" data-id="${s.id}">檢視</button>
+            <button class="ghost" data-action="edit" data-id="${s.id}">編輯</button>
+            <button class="ghost" data-action="copy" data-id="${s.id}">複製</button>
+            <button class="ghost" data-action="del" data-id="${s.id}">刪除</button>
+          </div>
+        `;
+        listEl.appendChild(item);
+      });
+    }
+
+    form.addEventListener('submit', e=>{
+      e.preventDefault();
+      console.log('submit 觸發');
+      const id = idEl.value || uid();
+      const list = loadSnippets();
+      const payload = {
+        id,
+        title: titleEl.value.trim(),
+        category: categoryEl.value,
+        tags: tagsEl.value.trim(),
+        language: languageEl.value.trim(),
+        code: codeEl.value,
+        updatedAt: new Date().toISOString()
+      };
+      const exists = list.findIndex(x=>x.id===id);
+      if(exists>=0) list[exists]=payload; else list.push(payload);
+      try{
+        saveSnippets(list);
+        console.log('已儲存片段', payload);
+        alert('儲存完成');
+      }catch(err){
+        console.error('儲存失敗', err);
+        alert('儲存失敗，請檢查瀏覽器權限');
+      }
+      form.reset();
+      idEl.value='';
+    });
+
+    listEl.addEventListener('click', async e=>{
+      const btn = e.target.closest('button'); if(!btn) return;
+      const id = btn.dataset.id; const action = btn.dataset.action;
+      const list = loadSnippets();
+      const found = list.find(s=>s.id===id);
+      if(!found) return alert('找不到該片段');
+      if(action==='view'){
+        const w = window.open('', '_blank', 'noopener');
+        w.document.write(`<pre style="white-space:pre-wrap;font-family:Menlo,monospace;padding:16px">${found.code.replace(/</g,'&lt;')}</pre>`);
+        w.document.title = found.title;
+      }else if(action==='edit'){
+        idEl.value = found.id;
+        titleEl.value = found.title;
+        categoryEl.value = found.category || '一般';
+        tagsEl.value = found.tags || '';
+        languageEl.value = found.language || '';
+        codeEl.value = found.code || '';
+        window.scrollTo({top:0,behavior:'smooth'});
+      }else if(action==='copy'){
+        try{ await navigator.clipboard.writeText(found.code||''); alert('程式碼已複製到剪貼簿'); }
+        catch(err){ alert('無法複製，請手動選取並複製'); }
+      }else if(action==='del'){
+        if(confirm('確定要刪除這個片段嗎？')){
+          saveSnippets(list.filter(s=>s.id!==id));
+        }
+      }
+    });
+
+    newBtn.addEventListener('click', ()=>{ form.reset(); idEl.value=''; titleEl.focus(); });
+    resetBtn.addEventListener('click', ()=>{ if(confirm('清除表單？')) form.reset(); });
+    [searchEl, filterCategoryEl].forEach(el=>el.addEventListener('input', renderList));
+    exportBtn.addEventListener('click', ()=>{
+      const list = loadSnippets();
+      const blob = new Blob([JSON.stringify(list, null, 2)], {type:'application/json'});
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a'); a.href = url; a.download = 'snippets.json'; document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);
+    });
+
+    (function init(){
+      const list = loadSnippets();
+      if(list.length===0){
+        saveSnippets([{id:uid(),title:'範例：深拷貝 (JS)',category:'工具',tags:'clone,object,js',language:'JavaScript',code:'function deepClone(o){return JSON.parse(JSON.stringify(o));}'}]);
+      }else{
+        renderList();
+      }
+    })();
+  </script>
+</body>
+</html>

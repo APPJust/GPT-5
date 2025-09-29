@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <title>習慣追蹤器</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 20px;
+      text-align: center;
+    }
+    h1 {
+      margin-bottom: 10px;
+    }
+    #habit-list {
+      margin: 20px 0;
+    }
+    .habit {
+      margin: 10px 0;
+      padding: 10px;
+      border: 1px solid #aaa;
+      border-radius: 8px;
+      display: inline-block;
+      min-width: 320px;
+      background: #f9f9f9;
+    }
+    .calendar {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      gap: 5px;
+      margin-top: 10px;
+    }
+    .day {
+      border: 1px solid #ccc;
+      padding: 8px;
+      min-height: 40px;
+      cursor: pointer;
+      border-radius: 4px;
+      user-select: none;
+    }
+    .day.done {
+      background-color: lightgreen;
+    }
+    .day.empty {
+      background-color: #eee;
+      cursor: default;
+    }
+    footer {
+      margin-top: 30px;
+      font-size: 14px;
+      color: gray;
+    }
+  </style>
+</head>
+<body>
+  <h1>📅 習慣追蹤器</h1>
+  <input type="text" id="habit-input" placeholder="輸入習慣名稱 (如: 運動)">
+  <button onclick="addHabit()">新增習慣</button>
+  
+  <div id="habit-list"></div>
+
+  <footer>作者:李振偉</footer>
+
+  <script>
+    const habitListEl = document.getElementById("habit-list");
+    const habitInput = document.getElementById("habit-input");
+    const today = new Date();
+
+    // 讀取 Local Storage
+    let habits = JSON.parse(localStorage.getItem("habits")) || [];
+
+    function saveHabits() {
+      localStorage.setItem("habits", JSON.stringify(habits));
+    }
+
+    function addHabit() {
+      const name = habitInput.value.trim();
+      if (!name) return;
+      habits.push({ name, records: {} });
+      habitInput.value = "";
+      saveHabits();
+      renderHabits();
+    }
+
+    function toggleDay(habitIndex, dateKey) {
+      let habit = habits[habitIndex];
+      habit.records[dateKey] = !habit.records[dateKey];
+      saveHabits();
+      renderHabits();
+    }
+
+    function renderCalendar(habitIndex, year, month) {
+      const firstDay = new Date(year, month, 1);
+      const lastDay = new Date(year, month + 1, 0);
+      const startDay = firstDay.getDay(); // 星期幾開始
+      const daysInMonth = lastDay.getDate();
+      const calendar = [];
+
+      // 前置空白
+      for (let i = 0; i < startDay; i++) {
+        calendar.push({ empty: true });
+      }
+      // 日期
+      for (let d = 1; d <= daysInMonth; d++) {
+        const dateKey = `${year}-${month+1}-${d}`;
+        const done = habits[habitIndex].records[dateKey] || false;
+        calendar.push({ day: d, key: dateKey, done });
+      }
+      return calendar;
+    }
+
+    function renderHabits() {
+      habitListEl.innerHTML = "";
+      const year = today.getFullYear();
+      const month = today.getMonth();
+
+      habits.forEach((habit, index) => {
+        const habitEl = document.createElement("div");
+        habitEl.className = "habit";
+        habitEl.innerHTML = `<h3>${habit.name}</h3>`;
+
+        const calendarEl = document.createElement("div");
+        calendarEl.className = "calendar";
+
+        const calendar = renderCalendar(index, year, month);
+        calendar.forEach(cell => {
+          const dayEl = document.createElement("div");
+          if (cell.empty) {
+            dayEl.className = "day empty";
+          } else {
+            dayEl.className = "day" + (cell.done ? " done" : "");
+            dayEl.textContent = cell.day;
+            dayEl.onclick = () => toggleDay(index, cell.key);
+          }
+          calendarEl.appendChild(dayEl);
+        });
+
+        habitEl.appendChild(calendarEl);
+        habitListEl.appendChild(habitEl);
+      });
+    }
+
+    renderHabits();
+  </script>
+</body>
+</html>

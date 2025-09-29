@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>狗狗圖片產生器</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      text-align: center;
+      padding: 50px;
+      background-color: #f9f9f9;
+    }
+    h1 {
+      color: #ff6f61;
+    }
+    img {
+      max-width: 80%;
+      height: auto;
+      border-radius: 15px;
+      margin-top: 20px;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+    }
+    button {
+      padding: 10px 20px;
+      font-size: 16px;
+      background-color: #ff6f61;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+      margin-top: 20px;
+    }
+    button:hover {
+      background-color: #ff4c3b;
+    }
+    footer {
+      margin-top: 40px;
+      font-size: 14px;
+      color: #888;
+    }
+  </style>
+</head>
+<body>
+  <h1>狗狗圖片產生器 🐶</h1>
+  <button id="generateBtn">隨機生成狗狗圖片</button>
+  <div>
+    <img id="dogImage" src="" alt="可愛狗狗圖片" style="display:none;">
+  </div>
+  <footer>作者: 李振偉</footer>
+
+  <script>
+    const button = document.getElementById('generateBtn');
+    const img = document.getElementById('dogImage');
+
+    button.addEventListener('click', () => {
+      fetch('https://dog.ceo/api/breeds/image/random')
+        .then(response => response.json())
+        .then(data => {
+          img.src = data.message;
+          img.style.display = 'block';
+        })
+        .catch(error => {
+          console.error('抓取狗狗圖片失敗:', error);
+          alert('圖片載入失敗，請再試一次！');
+        });
+    });
+  </script>
+</body>
+</html>

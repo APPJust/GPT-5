@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>圖片壓縮與尺寸調整工具</title>
+  <style>
+    body { font-family: Arial, sans-serif; padding: 20px; background: #f0f0f0; }
+    h1 { color: #333; }
+    label { display: block; margin-top: 10px; }
+    input, button { margin-top: 5px; }
+    canvas { display: block; margin-top: 10px; border: 1px solid #ccc; }
+    .footer { margin-top: 20px; font-size: 0.9em; color: #666; }
+  </style>
+</head>
+<body>
+  <h1>圖片壓縮與尺寸調整工具</h1>
+  
+  <label>選擇圖片：
+    <input type="file" id="imageInput" accept="image/*">
+  </label>
+
+  <label>調整寬度（px, 留空維持原尺寸）：
+    <input type="number" id="widthInput" placeholder="例如 800">
+  </label>
+
+  <label>調整高度（px, 留空維持原尺寸）：
+    <input type="number" id="heightInput" placeholder="例如 600">
+  </label>
+
+  <label>壓縮品質（0~1, 預設 0.8）：
+    <input type="number" id="qualityInput" min="0" max="1" step="0.1" value="0.8">
+  </label>
+
+  <button id="processBtn">處理圖片</button>
+  <button id="downloadBtn" style="display:none;">下載圖片</button>
+
+  <canvas id="canvas"></canvas>
+
+  <div class="footer">作者:李振偉</div>
+
+  <script>
+    const imageInput = document.getElementById('imageInput');
+    const widthInput = document.getElementById('widthInput');
+    const heightInput = document.getElementById('heightInput');
+    const qualityInput = document.getElementById('qualityInput');
+    const processBtn = document.getElementById('processBtn');
+    const downloadBtn = document.getElementById('downloadBtn');
+    const canvas = document.getElementById('canvas');
+    const ctx = canvas.getContext('2d');
+
+    let originalImage = new Image();
+
+    imageInput.addEventListener('change', (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        originalImage.src = event.target.result;
+      }
+      reader.readAsDataURL(file);
+    });
+
+    processBtn.addEventListener('click', () => {
+      if (!originalImage.src) return alert("請先選擇圖片");
+
+      let width = parseInt(widthInput.value) || originalImage.width;
+      let height = parseInt(heightInput.value) || originalImage.height;
+      const quality = parseFloat(qualityInput.value) || 0.8;
+
+      canvas.width = width;
+      canvas.height = height;
+      ctx.clearRect(0, 0, width, height);
+      ctx.drawImage(originalImage, 0, 0, width, height);
+
+      downloadBtn.style.display = 'inline-block';
+      downloadBtn.onclick = () => {
+        canvas.toBlob((blob) => {
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = 'processed_image.jpg';
+          a.click();
+          URL.revokeObjectURL(url);
+        }, 'image/jpeg', quality);
+      }
+    });
+  </script>
+</body>
+</html>

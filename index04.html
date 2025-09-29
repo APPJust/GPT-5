@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <title>活動倒數計時器</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #f3f4f6;
+      text-align: center;
+      padding: 20px;
+    }
+    h1 {
+      color: #333;
+    }
+    form {
+      margin: 20px auto;
+      padding: 15px;
+      background: #fff;
+      border-radius: 10px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+      display: inline-block;
+    }
+    input, button {
+      padding: 8px;
+      margin: 5px;
+    }
+    ul {
+      list-style: none;
+      padding: 0;
+      max-width: 600px;
+      margin: 20px auto;
+    }
+    li {
+      background: #fff;
+      margin: 10px 0;
+      padding: 15px;
+      border-radius: 8px;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.1);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .event-info {
+      text-align: left;
+    }
+    .delete-btn {
+      background: #e74c3c;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+      padding: 6px 12px;
+    }
+    .delete-btn:hover {
+      background: #c0392b;
+    }
+    footer {
+      margin-top: 30px;
+      color: #555;
+    }
+  </style>
+</head>
+<body>
+  <h1>活動倒數計時器</h1>
+  <form id="eventForm">
+    <input type="text" id="eventName" placeholder="事件名稱" required>
+    <input type="datetime-local" id="eventDate" required>
+    <button type="submit">新增事件</button>
+  </form>
+
+  <ul id="eventList"></ul>
+
+  <footer>作者:李振偉</footer>
+
+  <script>
+    const eventForm = document.getElementById("eventForm");
+    const eventList = document.getElementById("eventList");
+
+    let events = JSON.parse(localStorage.getItem("events")) || [];
+
+    function saveEvents() {
+      localStorage.setItem("events", JSON.stringify(events));
+    }
+
+    function renderEvents() {
+      eventList.innerHTML = "";
+      events.forEach((event, index) => {
+        const li = document.createElement("li");
+
+        const infoDiv = document.createElement("div");
+        infoDiv.classList.add("event-info");
+        infoDiv.innerHTML = `<strong>${event.name}</strong><br><span id="countdown-${index}"></span>`;
+
+        const deleteBtn = document.createElement("button");
+        deleteBtn.textContent = "刪除";
+        deleteBtn.classList.add("delete-btn");
+        deleteBtn.onclick = () => {
+          events.splice(index, 1);
+          saveEvents();
+          renderEvents();
+        };
+
+        li.appendChild(infoDiv);
+        li.appendChild(deleteBtn);
+        eventList.appendChild(li);
+      });
+    }
+
+    function updateCountdowns() {
+      events.forEach((event, index) => {
+        const countdownEl = document.getElementById(`countdown-${index}`);
+        if (!countdownEl) return;
+
+        const now = new Date().getTime();
+        const target = new Date(event.date).getTime();
+        const distance = target - now;
+
+        if (distance <= 0) {
+          countdownEl.textContent = "已到期！";
+          return;
+        }
+
+        const days = Math.floor(distance / (1000 * 60 * 60 * 24));
+        const hours = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+        const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
+        const seconds = Math.floor((distance % (1000 * 60)) / 1000);
+
+        countdownEl.textContent = `${days} 天 ${hours} 小時 ${minutes} 分鐘 ${seconds} 秒`;
+      });
+    }
+
+    eventForm.addEventListener("submit", (e) => {
+      e.preventDefault();
+      const name = document.getElementById("eventName").value;
+      const date = document.getElementById("eventDate").value;
+
+      events.push({ name, date });
+      saveEvents();
+      renderEvents();
+      eventForm.reset();
+    });
+
+    renderEvents();
+    updateCountdowns();
+    setInterval(updateCountdowns, 1000);
+  </script>
+</body>
+</html>

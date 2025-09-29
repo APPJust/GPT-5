@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>簡易繪圖板</title>
+<style>
+    body {
+        font-family: Arial, sans-serif;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        margin: 0;
+        padding: 20px;
+        background-color: #f0f0f0;
+    }
+    #toolbar {
+        margin-bottom: 10px;
+    }
+    canvas {
+        border: 2px solid #000;
+        background-color: #fff;
+        cursor: crosshair;
+    }
+    label, select, input {
+        margin-right: 10px;
+    }
+    #author {
+        margin-top: 10px;
+        font-size: 14px;
+        color: #555;
+    }
+</style>
+</head>
+<body>
+
+<h2>簡易繪圖板</h2>
+
+<div id="toolbar">
+    <label for="colorPicker">顏色:</label>
+    <input type="color" id="colorPicker" value="#000000">
+    
+    <label for="brushSize">筆刷粗細:</label>
+    <select id="brushSize">
+        <option value="2">2px</option>
+        <option value="5" selected>5px</option>
+        <option value="10">10px</option>
+        <option value="15">15px</option>
+        <option value="20">20px</option>
+    </select>
+
+    <button id="clearBtn">清空畫布</button>
+    <button id="downloadBtn">下載圖片</button>
+</div>
+
+<canvas id="whiteboard" width="800" height="500"></canvas>
+
+<div id="author">作者: 李振偉</div>
+
+<script>
+const canvas = document.getElementById('whiteboard');
+const ctx = canvas.getContext('2d');
+let painting = false;
+
+// 取得工具欄元素
+const colorPicker = document.getElementById('colorPicker');
+const brushSize = document.getElementById('brushSize');
+const clearBtn = document.getElementById('clearBtn');
+const downloadBtn = document.getElementById('downloadBtn');
+
+// 畫筆設定
+ctx.strokeStyle = colorPicker.value;
+ctx.lineWidth = brushSize.value;
+ctx.lineCap = 'round';
+
+// 開始繪畫
+canvas.addEventListener('mousedown', () => painting = true);
+canvas.addEventListener('mouseup', () => painting = false);
+canvas.addEventListener('mouseout', () => painting = false);
+
+canvas.addEventListener('mousemove', draw);
+
+function draw(e) {
+    if (!painting) return;
+    const rect = canvas.getBoundingClientRect();
+    ctx.lineTo(e.clientX - rect.left, e.clientY - rect.top);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(e.clientX - rect.left, e.clientY - rect.top);
+}
+
+// 改變顏色
+colorPicker.addEventListener('change', (e) => {
+    ctx.strokeStyle = e.target.value;
+});
+
+// 改變筆刷粗細
+brushSize.addEventListener('change', (e) => {
+    ctx.lineWidth = e.target.value;
+});
+
+// 清空畫布
+clearBtn.addEventListener('click', () => {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+});
+
+// 下載圖片
+downloadBtn.addEventListener('click', () => {
+    const link = document.createElement('a');
+    link.download = 'my_drawing.png';
+    link.href = canvas.toDataURL();
+    link.click();
+});
+</script>
+
+</body>
+</html>

@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <title>個人理財追蹤器</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 20px;
+      background: #f5f5f5;
+    }
+    h1 {
+      text-align: center;
+      color: #333;
+    }
+    .container {
+      max-width: 800px;
+      margin: auto;
+      background: #fff;
+      padding: 20px;
+      border-radius: 10px;
+      box-shadow: 0px 2px 8px rgba(0,0,0,0.1);
+    }
+    form {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 20px;
+      flex-wrap: wrap;
+    }
+    form input, form select, form button {
+      padding: 8px;
+      font-size: 14px;
+    }
+    ul {
+      list-style: none;
+      padding: 0;
+    }
+    li {
+      display: flex;
+      justify-content: space-between;
+      background: #fafafa;
+      margin-bottom: 5px;
+      padding: 8px;
+      border: 1px solid #ddd;
+      border-radius: 5px;
+    }
+    .income { color: green; }
+    .expense { color: red; }
+    #chart-container {
+      margin-top: 20px;
+    }
+    footer {
+      text-align: center;
+      margin-top: 20px;
+      color: #666;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>個人理財追蹤器</h1>
+    <form id="transaction-form">
+      <input type="text" id="description" placeholder="項目名稱" required>
+      <input type="number" id="amount" placeholder="金額" required>
+      <select id="type">
+        <option value="income">收入</option>
+        <option value="expense">支出</option>
+      </select>
+      <button type="submit">新增</button>
+    </form>
+
+    <h2>交易紀錄</h2>
+    <ul id="transaction-list"></ul>
+
+    <div id="chart-container">
+      <h2>收入 vs 支出 分析</h2>
+      <canvas id="financeChart"></canvas>
+    </div>
+  </div>
+
+  <footer>
+    作者:李振偉
+  </footer>
+
+  <script>
+    const form = document.getElementById("transaction-form");
+    const descriptionInput = document.getElementById("description");
+    const amountInput = document.getElementById("amount");
+    const typeInput = document.getElementById("type");
+    const transactionList = document.getElementById("transaction-list");
+    const ctx = document.getElementById("financeChart").getContext("2d");
+
+    let transactions = JSON.parse(localStorage.getItem("transactions")) || [];
+
+    function renderTransactions() {
+      transactionList.innerHTML = "";
+      transactions.forEach((t, index) => {
+        const li = document.createElement("li");
+        li.innerHTML = `
+          <span class="${t.type}">${t.description} - ${t.amount} 元 (${t.type === 'income' ? '收入' : '支出'})</span>
+          <button onclick="deleteTransaction(${index})">刪除</button>
+        `;
+        transactionList.appendChild(li);
+      });
+    }
+
+    function updateChart() {
+      const income = transactions.filter(t => t.type === "income").reduce((sum, t) => sum + t.amount, 0);
+      const expense = transactions.filter(t => t.type === "expense").reduce((sum, t) => sum + t.amount, 0);
+
+      if (window.financeChart) window.financeChart.destroy();
+
+      window.financeChart = new Chart(ctx, {
+        type: "pie",
+        data: {
+          labels: ["收入", "支出"],
+          datasets: [{
+            data: [income, expense],
+            backgroundColor: ["#4caf50", "#f44336"]
+          }]
+        }
+      });
+    }
+
+    form.addEventListener("submit", (e) => {
+      e.preventDefault();
+      const transaction = {
+        description: descriptionInput.value,
+        amount: parseFloat(amountInput.value),
+        type: typeInput.value
+      };
+      transactions.push(transaction);
+      localStorage.setItem("transactions", JSON.stringify(transactions));
+      descriptionInput.value = "";
+      amountInput.value = "";
+      renderTransactions();
+      updateChart();
+    });
+
+    function deleteTransaction(index) {
+      transactions.splice(index, 1);
+      localStorage.setItem("transactions", JSON.stringify(transactions));
+      renderTransactions();
+      updateChart();
+    }
+
+    renderTransactions();
+    updateChart();
+  </script>
+</body>
+</html>

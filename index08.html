@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <title>聯絡人管理</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 40px;
+      background: #f4f7fa;
+    }
+    h1 {
+      text-align: center;
+      color: #333;
+    }
+    form {
+      background: #fff;
+      padding: 15px;
+      margin-bottom: 20px;
+      border-radius: 8px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+      max-width: 500px;
+      margin-left: auto;
+      margin-right: auto;
+    }
+    input[type="text"], input[type="tel"], input[type="email"] {
+      width: calc(100% - 20px);
+      padding: 8px;
+      margin: 5px 0;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+    }
+    button {
+      padding: 10px 15px;
+      margin-top: 10px;
+      border: none;
+      border-radius: 6px;
+      background: #28a745;
+      color: white;
+      cursor: pointer;
+    }
+    button:hover {
+      background: #218838;
+    }
+    #search {
+      margin: 20px auto;
+      display: block;
+      padding: 8px;
+      width: 300px;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 15px;
+    }
+    th, td {
+      padding: 10px;
+      border-bottom: 1px solid #ddd;
+      text-align: center;
+    }
+    th {
+      background: #007bff;
+      color: white;
+    }
+    .delete-btn {
+      background: #dc3545;
+      padding: 6px 10px;
+      border: none;
+      border-radius: 6px;
+      color: white;
+      cursor: pointer;
+    }
+    .delete-btn:hover {
+      background: #c82333;
+    }
+    footer {
+      text-align: center;
+      margin-top: 30px;
+      font-weight: bold;
+      color: #555;
+    }
+  </style>
+</head>
+<body>
+  <h1>📇 聯絡人管理</h1>
+  
+  <form id="contactForm">
+    <input type="text" id="name" placeholder="姓名" required><br>
+    <input type="tel" id="phone" placeholder="電話" required><br>
+    <input type="email" id="email" placeholder="Email" required><br>
+    <button type="submit">新增聯絡人</button>
+  </form>
+
+  <input type="text" id="search" placeholder="🔍 搜尋聯絡人...">
+
+  <table id="contactTable">
+    <thead>
+      <tr>
+        <th>姓名</th>
+        <th>電話</th>
+        <th>Email</th>
+        <th>操作</th>
+      </tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+
+  <footer>作者:李振偉</footer>
+
+  <script>
+    const form = document.getElementById('contactForm');
+    const nameInput = document.getElementById('name');
+    const phoneInput = document.getElementById('phone');
+    const emailInput = document.getElementById('email');
+    const tableBody = document.querySelector('#contactTable tbody');
+    const searchInput = document.getElementById('search');
+
+    // 初始化
+    document.addEventListener('DOMContentLoaded', loadContacts);
+
+    // 新增聯絡人
+    form.addEventListener('submit', function(e) {
+      e.preventDefault();
+      const name = nameInput.value.trim();
+      const phone = phoneInput.value.trim();
+      const email = emailInput.value.trim();
+
+      if(name && phone && email) {
+        const contact = { name, phone, email };
+        saveContact(contact);
+        addContactToTable(contact);
+        form.reset();
+      }
+    });
+
+    // 儲存到 Local Storage
+    function saveContact(contact) {
+      let contacts = JSON.parse(localStorage.getItem('contacts')) || [];
+      contacts.push(contact);
+      localStorage.setItem('contacts', JSON.stringify(contacts));
+    }
+
+    // 載入 Local Storage 資料
+    function loadContacts() {
+      let contacts = JSON.parse(localStorage.getItem('contacts')) || [];
+      contacts.forEach(contact => addContactToTable(contact));
+    }
+
+    // 新增到表格
+    function addContactToTable(contact) {
+      const row = document.createElement('tr');
+      row.innerHTML = `
+        <td>${contact.name}</td>
+        <td>${contact.phone}</td>
+        <td>${contact.email}</td>
+        <td><button class="delete-btn">刪除</button></td>
+      `;
+      row.querySelector('.delete-btn').addEventListener('click', () => {
+        deleteContact(contact.email);
+        row.remove();
+      });
+      tableBody.appendChild(row);
+    }
+
+    // 刪除聯絡人
+    function deleteContact(email) {
+      let contacts = JSON.parse(localStorage.getItem('contacts')) || [];
+      contacts = contacts.filter(c => c.email !== email);
+      localStorage.setItem('contacts', JSON.stringify(contacts));
+    }
+
+    // 搜尋功能
+    searchInput.addEventListener('keyup', function() {
+      const keyword = this.value.toLowerCase();
+      const rows = tableBody.querySelectorAll('tr');
+      rows.forEach(row => {
+        const text = row.textContent.toLowerCase();
+        row.style.display = text.includes(keyword) ? '' : 'none';
+      });
+    });
+  </script>
+</body>
+</html>

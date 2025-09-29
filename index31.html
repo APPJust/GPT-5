@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <title>CSV 資料視覺化工具</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            background-color: #f4f4f4;
+        }
+        h1 {
+            color: #333;
+        }
+        #controls {
+            margin-bottom: 20px;
+        }
+        label, select, input {
+            margin-right: 10px;
+        }
+        canvas {
+            background-color: #fff;
+            border: 1px solid #ccc;
+        }
+        footer {
+            margin-top: 20px;
+            font-size: 0.9em;
+            color: #666;
+        }
+    </style>
+</head>
+<body>
+    <h1>CSV 資料視覺化工具</h1>
+
+    <div id="controls">
+        <input type="file" id="csvFile" accept=".csv">
+        <label for="xAxis">X 軸:</label>
+        <select id="xAxis"></select>
+        <label for="yAxis">Y 軸:</label>
+        <select id="yAxis"></select>
+        <label for="chartType">圖表類型:</label>
+        <select id="chartType">
+            <option value="bar">長條圖</option>
+            <option value="line">折線圖</option>
+        </select>
+        <button id="drawChart">生成圖表</button>
+    </div>
+
+    <canvas id="chartCanvas" width="800" height="400"></canvas>
+
+    <footer>作者:李振偉</footer>
+
+    <script>
+        let chart;
+
+        document.getElementById('csvFile').addEventListener('change', handleFile, false);
+        document.getElementById('drawChart').addEventListener('click', drawChart, false);
+
+        let csvData = [];
+        let headers = [];
+
+        function handleFile(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const text = e.target.result;
+                parseCSV(text);
+                populateSelects();
+            };
+            reader.readAsText(file);
+        }
+
+        function parseCSV(text) {
+            const lines = text.trim().split('\n');
+            headers = lines[0].split(',');
+            csvData = lines.slice(1).map(line => {
+                const values = line.split(',');
+                const obj = {};
+                headers.forEach((header, i) => {
+                    obj[header] = isNaN(values[i]) ? values[i] : parseFloat(values[i]);
+                });
+                return obj;
+            });
+        }
+
+        function populateSelects() {
+            const xSelect = document.getElementById('xAxis');
+            const ySelect = document.getElementById('yAxis');
+            xSelect.innerHTML = '';
+            ySelect.innerHTML = '';
+            headers.forEach(header => {
+                const optionX = document.createElement('option');
+                optionX.value = header;
+                optionX.text = header;
+                xSelect.add(optionX);
+
+                const optionY = document.createElement('option');
+                optionY.value = header;
+                optionY.text = header;
+                ySelect.add(optionY);
+            });
+        }
+
+        function drawChart() {
+            const xField = document.getElementById('xAxis').value;
+            const yField = document.getElementById('yAxis').value;
+            const type = document.getElementById('chartType').value;
+
+            if (!xField || !yField) {
+                alert('請選擇 X 軸和 Y 軸');
+                return;
+            }
+
+            const labels = csvData.map(row => row[xField]);
+            const data = csvData.map(row => row[yField]);
+
+            const ctx = document.getElementById('chartCanvas').getContext('2d');
+
+            if (chart) chart.destroy();
+
+            chart = new Chart(ctx, {
+                type: type,
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: yField,
+                        data: data,
+                        backgroundColor: type === 'bar' ? 'rgba(54, 162, 235, 0.5)' : 'rgba(54, 162, 235, 0.2)',
+                        borderColor: 'rgba(54, 162, 235, 1)',
+                        borderWidth: 2,
+                        fill: type === 'line' ? false : true,
+                        tension: 0.3
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: {
+                            display: true
+                        }
+                    },
+                    scales: {
+                        x: {
+                            title: {
+                                display: true,
+                                text: xField
+                            }
+                        },
+                        y: {
+                            title: {
+                                display: true,
+                                text: yField
+                            }
+                        }
+                    }
+                }
+            });
+        }
+    </script>
+</body>
+</html>

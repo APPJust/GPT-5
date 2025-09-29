@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Meme 產生器</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      text-align: center;
+      background-color: #f0f0f0;
+      padding: 20px;
+    }
+    h1 {
+      color: #333;
+    }
+    canvas {
+      border: 2px solid #333;
+      margin-top: 20px;
+    }
+    input[type="text"] {
+      width: 80%;
+      padding: 8px;
+      margin: 5px 0;
+      font-size: 16px;
+    }
+    input[type="file"] {
+      margin: 10px 0;
+    }
+    button {
+      padding: 10px 20px;
+      font-size: 16px;
+      margin: 10px;
+      cursor: pointer;
+    }
+    #author {
+      margin-top: 20px;
+      font-size: 14px;
+      color: #888;
+    }
+  </style>
+</head>
+<body>
+  <h1>Meme 產生器</h1>
+
+  <input type="file" id="imageUpload" accept="image/*"><br>
+  <input type="text" id="topText" placeholder="上方文字"><br>
+  <input type="text" id="bottomText" placeholder="下方文字"><br>
+  <button id="generateBtn">生成 Meme</button>
+  <button id="downloadBtn">下載 Meme</button>
+
+  <canvas id="memeCanvas" width="500" height="500"></canvas>
+
+  <div id="author">作者: 李振偉</div>
+
+  <script>
+    const imageUpload = document.getElementById('imageUpload');
+    const topText = document.getElementById('topText');
+    const bottomText = document.getElementById('bottomText');
+    const generateBtn = document.getElementById('generateBtn');
+    const downloadBtn = document.getElementById('downloadBtn');
+    const canvas = document.getElementById('memeCanvas');
+    const ctx = canvas.getContext('2d');
+
+    let uploadedImage = null;
+
+    imageUpload.addEventListener('change', (e) => {
+      const file = e.target.files[0];
+      if (file) {
+        const reader = new FileReader();
+        reader.onload = function(event) {
+          const img = new Image();
+          img.onload = function() {
+            uploadedImage = img;
+            drawMeme();
+          }
+          img.src = event.target.result;
+        }
+        reader.readAsDataURL(file);
+      }
+    });
+
+    function drawMeme() {
+      if (!uploadedImage) return;
+
+      // 調整 canvas 大小以符合圖片
+      canvas.width = uploadedImage.width;
+      canvas.height = uploadedImage.height;
+
+      // 清空畫布
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      // 畫圖片
+      ctx.drawImage(uploadedImage, 0, 0);
+
+      // 設定文字樣式
+      ctx.fillStyle = 'white';
+      ctx.strokeStyle = 'black';
+      ctx.textAlign = 'center';
+      ctx.lineWidth = 3;
+      ctx.font = `${canvas.width / 10}px Impact`;
+      
+      // 畫上方文字
+      if (topText.value) {
+        ctx.fillText(topText.value.toUpperCase(), canvas.width / 2, canvas.height * 0.1);
+        ctx.strokeText(topText.value.toUpperCase(), canvas.width / 2, canvas.height * 0.1);
+      }
+
+      // 畫下方文字
+      if (bottomText.value) {
+        ctx.fillText(bottomText.value.toUpperCase(), canvas.width / 2, canvas.height * 0.9);
+        ctx.strokeText(bottomText.value.toUpperCase(), canvas.width / 2, canvas.height * 0.9);
+      }
+    }
+
+    generateBtn.addEventListener('click', drawMeme);
+
+    downloadBtn.addEventListener('click', () => {
+      const link = document.createElement('a');
+      link.download = 'meme.png';
+      link.href = canvas.toDataURL('image/png');
+      link.click();
+    });
+  </script>
+</body>
+</html>

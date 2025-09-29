@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CSS 漸層背景產生器</title>
+<style>
+  body {
+    font-family: Arial, sans-serif;
+    margin: 0;
+    padding: 20px;
+    background: #f0f0f0;
+  }
+  h1 {
+    text-align: center;
+  }
+  .generator {
+    max-width: 600px;
+    margin: 20px auto;
+    background: #fff;
+    padding: 20px;
+    border-radius: 10px;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+  }
+  .preview {
+    height: 200px;
+    border-radius: 10px;
+    margin-top: 20px;
+    border: 1px solid #ccc;
+  }
+  .controls {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+  .controls label {
+    flex: 1 1 100%;
+  }
+  input, select, button {
+    padding: 8px;
+    margin-top: 5px;
+    width: 100%;
+    box-sizing: border-box;
+  }
+  .css-code {
+    margin-top: 20px;
+    background: #eee;
+    padding: 10px;
+    border-radius: 5px;
+    font-family: monospace;
+    white-space: pre-wrap;
+  }
+  .author {
+    text-align: center;
+    margin-top: 20px;
+    font-size: 14px;
+    color: #555;
+  }
+</style>
+</head>
+<body>
+
+<h1>CSS 漸層背景產生器</h1>
+<div class="generator">
+  <div class="controls">
+    <label>
+      顏色 1: 
+      <input type="color" id="color1" value="#ff0000">
+    </label>
+    <label>
+      顏色 2: 
+      <input type="color" id="color2" value="#0000ff">
+    </label>
+    <label>
+      角度 (度): 
+      <input type="number" id="angle" value="90" min="0" max="360">
+    </label>
+    <label>
+      漸層類型: 
+      <select id="type">
+        <option value="linear">線性 (linear)</option>
+        <option value="radial">徑向 (radial)</option>
+      </select>
+    </label>
+    <button id="copyBtn">複製 CSS 代碼</button>
+  </div>
+  <div class="preview" id="preview"></div>
+  <div class="css-code" id="cssCode"></div>
+</div>
+
+<div class="author">作者:李振偉</div>
+
+<script>
+  const color1 = document.getElementById('color1');
+  const color2 = document.getElementById('color2');
+  const angle = document.getElementById('angle');
+  const type = document.getElementById('type');
+  const preview = document.getElementById('preview');
+  const cssCode = document.getElementById('cssCode');
+  const copyBtn = document.getElementById('copyBtn');
+
+  function updateGradient() {
+    let gradient;
+    if(type.value === 'linear') {
+      gradient = `linear-gradient(${angle.value}deg, ${color1.value}, ${color2.value})`;
+    } else {
+      gradient = `radial-gradient(circle, ${color1.value}, ${color2.value})`;
+    }
+    preview.style.background = gradient;
+    cssCode.textContent = `background: ${gradient};`;
+  }
+
+  color1.addEventListener('input', updateGradient);
+  color2.addEventListener('input', updateGradient);
+  angle.addEventListener('input', updateGradient);
+  type.addEventListener('change', updateGradient);
+
+  copyBtn.addEventListener('click', () => {
+    navigator.clipboard.writeText(cssCode.textContent)
+      .then(() => alert('CSS 代碼已複製！'))
+      .catch(() => alert('複製失敗'));
+  });
+
+  // 初始化
+  updateGradient();
+</script>
+
+</body>
+</html>

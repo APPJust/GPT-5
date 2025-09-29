@@ -1,0 +1,337 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>番茄鐘 Pomodoro Timer — 作者: 李振偉</title>
+  <style>
+    :root{--bg:#0f1724;--card:#0b1220;--accent:#ff6b6b;--muted:#94a3b8;--glass:rgba(255,255,255,0.03)}
+    *{box-sizing:border-box;font-family:Inter, system-ui, -apple-system, 'Noto Sans TC', 'Microsoft JhengHei', sans-serif}
+    html,body{height:100%;margin:0;background:linear-gradient(180deg,#071024 0%, #071e2e 100%);color:#e6eef8}
+    .wrap{max-width:920px;margin:36px auto;padding:24px;background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));border-radius:12px;box-shadow:0 6px 30px rgba(2,6,23,0.6)}
+    header{display:flex;justify-content:space-between;align-items:center;margin-bottom:18px}
+    h1{font-size:20px;margin:0}
+    .author{font-size:13px;color:var(--muted)}
+
+    .layout{display:grid;grid-template-columns:320px 1fr;gap:18px}
+    .card{background:var(--card);padding:16px;border-radius:10px;box-shadow:inset 0 1px 0 rgba(255,255,255,0.02)}
+
+    .timer-circle{display:flex;flex-direction:column;align-items:center;gap:12px}
+    .time{font-size:48px;font-weight:700}
+    .mode{font-size:14px;color:var(--muted)}
+
+    .controls{display:flex;gap:10px}
+    button{background:var(--glass);border:1px solid rgba(255,255,255,0.04);color:inherit;padding:10px 12px;border-radius:8px;cursor:pointer}
+    button.primary{background:linear-gradient(90deg,var(--accent),#ff8b8b);color:#051020;border:none}
+    button.danger{background:transparent;border:1px solid #ff6b6b;color:#ffbfc0}
+
+    .settings label{display:block;font-size:13px;color:var(--muted);margin-bottom:6px}
+    .row{display:flex;gap:8px;align-items:center}
+    input[type=number]{width:80px;padding:8px;border-radius:6px;border:1px solid rgba(255,255,255,0.04);background:transparent;color:inherit}
+    .small{font-size:12px;color:var(--muted)}
+
+    .stats{display:flex;gap:12px;align-items:center;flex-wrap:wrap}
+    .stat{background:rgba(255,255,255,0.02);padding:10px 12px;border-radius:8px}
+
+    footer{margin-top:14px;font-size:12px;color:var(--muted);display:flex;justify-content:space-between;align-items:center}
+    .progress{height:8px;background:rgba(255,255,255,0.03);border-radius:999px;overflow:hidden}
+    .progress > i{display:block;height:100%;background:linear-gradient(90deg,var(--accent),#ffb3b3);width:0%}
+
+    @media(max-width:860px){.layout{grid-template-columns:1fr;}}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <div>
+        <h1>番茄鐘 Pomodoro Timer</h1>
+        <div class="author">作者: 李振偉</div>
+      </div>
+      <div class="small">儲存：Local Storage · 今日計數會以日期分開</div>
+    </header>
+
+    <div class="layout">
+      <div class="card">
+        <div class="timer-circle">
+          <div class="mode" id="mode">模式：工作</div>
+          <div class="time" id="time">25:00</div>
+          <div class="controls">
+            <button id="startBtn" class="primary">開始</button>
+            <button id="pauseBtn">暫停</button>
+            <button id="skipBtn">跳過</button>
+            <button id="resetBtn" class="danger">重設</button>
+          </div>
+          <div style="width:100%;margin-top:12px">
+            <div class="progress" title="進度">
+              <i id="progressBar"></i>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <section class="settings">
+          <h3 style="margin-top:0">設定</h3>
+          <div class="row">
+            <div style="flex:1">
+              <label>工作時間 (分鐘)</label>
+              <input id="workMin" type="number" min="1" value="25" />
+            </div>
+            <div style="flex:1">
+              <label>休息時間 (分鐘)</label>
+              <input id="breakMin" type="number" min="1" value="5" />
+            </div>
+          </div>
+          <div style="margin-top:10px" class="row">
+            <button id="saveSetting">儲存設定</button>
+            <div class="small">設定會儲存在 Local Storage</div>
+          </div>
+        </section>
+
+        <hr style="border:none;border-top:1px solid rgba(255,255,255,0.03);margin:14px 0">
+
+        <section>
+          <h3 style="margin:0 0 8px 0">今日紀錄</h3>
+          <div class="stats">
+            <div class="stat">
+              <div class="small">日期</div>
+              <div id="todayLabel">-</div>
+            </div>
+            <div class="stat">
+              <div class="small">完成番茄數</div>
+              <div id="todayCount">0</div>
+            </div>
+            <div class="stat">
+              <div class="small">目前週期</div>
+              <div id="sessionCount">0</div>
+            </div>
+          </div>
+
+          <div style="margin-top:12px" class="small">備註：每完成一個 <strong>工作</strong> 時段 (非休息) 即計為 1 個番茄。</div>
+        </section>
+
+        <hr style="border:none;border-top:1px solid rgba(255,255,255,0.03);margin:14px 0">
+
+        <section>
+          <h3 style="margin:0 0 8px 0">進階</h3>
+          <div class="small">你可以自訂每日目標與重置每日計數。</div>
+          <div style="margin-top:8px" class="row">
+            <input id="dailyGoal" type="number" min="1" placeholder="每日目標 (可選)" />
+            <button id="resetToday">重置今日計數</button>
+          </div>
+        </section>
+
+      </div>
+    </div>
+
+    <footer>
+      <div class="small">聲音提示、桌面通知可在瀏覽器允許時生效。</div>
+      <div class="small">記錄存於 localStorage（按日期）</div>
+    </footer>
+  </div>
+
+  <audio id="beep" src="data:audio/wav;base64,//uQZAAAAAAAAAAAAAAAAAAAAAAAWGluZwAAAA8AAAACAAACcQCAgICAgICAgICAgP//" preload="auto"></audio>
+
+  <script>
+    // ----- util -----
+    const el = id=>document.getElementById(id);
+    const fmt = s => String(s).padStart(2,'0');
+    const todayKey = () => {
+      const d = new Date();
+      return d.getFullYear()+"-"+fmt(d.getMonth()+1)+"-"+fmt(d.getDate());
+    };
+
+    // ----- state -----
+    let workMin = parseInt(localStorage.getItem('pom_workMin')||25,10);
+    let breakMin = parseInt(localStorage.getItem('pom_breakMin')||5,10);
+    let timer = null;
+    let remaining = workMin*60; // seconds
+    let running = false;
+    let mode = 'work'; // 'work' or 'break'
+    let sessionCount = 0; // how many sessions (work) finished today
+
+    // ----- DOM bind -----
+    const timeEl = el('time');
+    const modeEl = el('mode');
+    const startBtn = el('startBtn');
+    const pauseBtn = el('pauseBtn');
+    const resetBtn = el('resetBtn');
+    const skipBtn = el('skipBtn');
+    const workInput = el('workMin');
+    const breakInput = el('breakMin');
+    const saveSetting = el('saveSetting');
+    const todayLabel = el('todayLabel');
+    const todayCount = el('todayCount');
+    const sessionCountEl = el('sessionCount');
+    const progressBar = el('progressBar');
+    const resetTodayBtn = el('resetToday');
+    const dailyGoalInput = el('dailyGoal');
+    const beep = el('beep');
+
+    // apply inputs from storage
+    workInput.value = workMin;
+    breakInput.value = breakMin;
+
+    // ----- storage helpers -----
+    function loadToday() {
+      const key = 'pom_counts_'+todayKey();
+      const val = parseInt(localStorage.getItem(key)||'0',10);
+      sessionCount = parseInt(localStorage.getItem('pom_sessionCount')||'0',10) || sessionCount;
+      todayLabel.textContent = todayKey();
+      todayCount.textContent = val;
+      sessionCountEl.textContent = sessionCount;
+    }
+    function saveTodayCount(n){
+      const key = 'pom_counts_'+todayKey();
+      localStorage.setItem(key, String(n));
+      todayCount.textContent = n;
+    }
+    function incrementToday(){
+      const key = 'pom_counts_'+todayKey();
+      const cur = parseInt(localStorage.getItem(key)||'0',10);
+      localStorage.setItem(key, String(cur+1));
+      saveTodayCount(cur+1);
+    }
+
+    // ----- timer logic -----
+    function setMode(m){
+      mode = m;
+      modeEl.textContent = '模式：' + (m==='work'? '工作' : '休息');
+      if(m==='work'){
+        remaining = (parseInt(localStorage.getItem('pom_workMin')||workInput.value,10) || workMin) * 60;
+      } else {
+        remaining = (parseInt(localStorage.getItem('pom_breakMin')||breakInput.value,10) || breakMin) * 60;
+      }
+      updateDisplay();
+    }
+
+    function updateDisplay(){
+      const mm = Math.floor(remaining/60);
+      const ss = remaining%60;
+      timeEl.textContent = fmt(mm)+':'+fmt(ss);
+      // progress
+      let total = (mode==='work' ? (parseInt(localStorage.getItem('pom_workMin')||workInput.value,10)||workMin) : (parseInt(localStorage.getItem('pom_breakMin')||breakInput.value,10)||breakMin)) * 60;
+      const pct = Math.max(0, Math.min(100, 100*(1 - remaining/total)));
+      progressBar.style.width = pct + '%';
+    }
+
+    function tick(){
+      if(remaining<=0){
+        // complete current period
+        if(mode==='work'){
+          // count as a completed pomodoro
+          incrementToday();
+          sessionCount += 1;
+          localStorage.setItem('pom_sessionCount', String(sessionCount));
+          sessionCountEl.textContent = sessionCount;
+        }
+        // play sound & notify
+        try{ beep.currentTime=0; beep.play(); }catch(e){}
+        if(Notification && Notification.permission==='granted'){
+          new Notification(mode==='work'? '工作完成！' : '休息結束！', {body: mode==='work'? '休息一下，或開始下一個工作時段。' : '回去工作吧！'});
+        }
+        // auto switch
+        setMode(mode==='work'?'break':'work');
+        // continue automatically
+        remaining--; // start next second
+        updateDisplay();
+        return;
+      }
+      remaining--;
+      updateDisplay();
+    }
+
+    function startTimer(){
+      if(running) return;
+      running = true;
+      startBtn.disabled = true;
+      pauseBtn.disabled = false;
+      timer = setInterval(tick,1000);
+    }
+    function pauseTimer(){
+      running = false;
+      startBtn.disabled = false;
+      pauseBtn.disabled = true;
+      clearInterval(timer);
+    }
+    function resetTimer(){
+      pauseTimer();
+      setMode('work');
+      sessionCount = 0;
+      localStorage.removeItem('pom_sessionCount');
+      sessionCountEl.textContent = sessionCount;
+      progressBar.style.width = '0%';
+    }
+
+    // ----- events -----
+    startBtn.addEventListener('click', ()=>{
+      startTimer();
+    });
+    pauseBtn.addEventListener('click', ()=>{
+      pauseTimer();
+    });
+    skipBtn.addEventListener('click', ()=>{
+      // skip to next mode
+      pauseTimer();
+      setMode(mode==='work'?'break':'work');
+      startTimer();
+    });
+    resetBtn.addEventListener('click', ()=>{
+      if(confirm('確定要重設計時與累計的會話數？')) resetTimer();
+    });
+
+    saveSetting.addEventListener('click', ()=>{
+      const w = parseInt(workInput.value||'25',10);
+      const b = parseInt(breakInput.value||'5',10);
+      if(isNaN(w)||isNaN(b)||w<1||b<1){ alert('請輸入有效的分鐘數（>=1）'); return; }
+      localStorage.setItem('pom_workMin', String(w));
+      localStorage.setItem('pom_breakMin', String(b));
+      workMin = w; breakMin = b;
+      setMode(mode); // refresh remaining
+      alert('設定已儲存');
+    });
+
+    resetTodayBtn.addEventListener('click', ()=>{
+      if(confirm('確定要將今天已完成的番茄數歸零？')){
+        localStorage.setItem('pom_counts_'+todayKey(),'0');
+        saveTodayCount(0);
+      }
+    });
+
+    // permission for notifications
+    if('Notification' in window){
+      if(Notification.permission === 'default'){
+        // ask when user first interacts
+        document.addEventListener('click', function askOnce(){
+          Notification.requestPermission();
+          document.removeEventListener('click', askOnce);
+        });
+      }
+    }
+
+    // initialize
+    function init(){
+      // load settings
+      workMin = parseInt(localStorage.getItem('pom_workMin')||workInput.value,10);
+      breakMin = parseInt(localStorage.getItem('pom_breakMin')||breakInput.value,10);
+      // load today's counts
+      loadToday();
+      // default mode
+      setMode('work');
+      pauseBtn.disabled = true;
+      startBtn.disabled = false;
+      updateDisplay();
+      // reset daily sessionCount when date changes
+      setInterval(()=>{
+        // if date changed, reload counts
+        loadToday();
+      },60*1000);
+
+      // try to pre-load audio silently for browsers that allow it
+      try{ beep.volume = 0.4; }catch(e){}
+    }
+
+    init();
+  </script>
+</body>
+</html>

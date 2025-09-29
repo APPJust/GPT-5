@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<title>文字冒險遊戲模擬器</title>
+<style>
+  body {
+    font-family: 'Courier New', monospace;
+    background-color: #111;
+    color: #0f0;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+  }
+  #terminal {
+    flex: 1;
+    padding: 20px;
+    overflow-y: auto;
+    white-space: pre-wrap;
+  }
+  #inputArea {
+    display: flex;
+    padding: 10px;
+    background-color: #222;
+  }
+  #userInput {
+    flex: 1;
+    font-family: 'Courier New', monospace;
+    font-size: 16px;
+    padding: 5px;
+    background-color: #111;
+    color: #0f0;
+    border: 1px solid #0f0;
+  }
+  #author {
+    text-align: center;
+    font-size: 12px;
+    color: #555;
+    padding: 5px;
+  }
+</style>
+</head>
+<body>
+
+<div id="terminal">歡迎來到文字冒險遊戲！輸入 "start" 開始遊戲。</div>
+
+<div id="inputArea">
+  <input type="text" id="userInput" placeholder="輸入指令..." autofocus />
+</div>
+
+<div id="author">作者:李振偉</div>
+
+<script>
+  const terminal = document.getElementById('terminal');
+  const userInput = document.getElementById('userInput');
+
+  // 遊戲腳本物件，加入 hint 提示玩家可用指令
+  const game = {
+    start: {
+      text: "你醒來在一個神秘的房間裡。門在北方，你看到桌上有一把鑰匙。",
+      commands: {
+        "go north": "hallway",
+        "take key": "keyTaken",
+      },
+      hint: "可用指令: go north, take key"
+    },
+    hallway: {
+      text: "你走進走廊，看到一扇鎖住的門。",
+      commands: {
+        "use key": "treasureRoom",
+        "go south": "start",
+      },
+      hint: "可用指令: use key, go south"
+    },
+    keyTaken: {
+      text: "你拿起了鑰匙。門在北方。",
+      commands: {
+        "go north": "hallway",
+      },
+      hint: "可用指令: go north"
+    },
+    treasureRoom: {
+      text: "你用鑰匙打開了門，裡面是寶藏！恭喜，你贏了！",
+      commands: {},
+      hint: ""
+    },
+    unknown: {
+      text: "我不懂你的指令，請再試一次。"
+    }
+  };
+
+  let currentState = null;
+
+  function printToTerminal(text) {
+    terminal.innerText += "\n" + text;
+    terminal.scrollTop = terminal.scrollHeight;
+  }
+
+  function showHint() {
+    if (currentState && game[currentState].hint) {
+      printToTerminal(game[currentState].hint);
+    }
+  }
+
+  function handleInput(input) {
+    input = input.trim().toLowerCase();
+    if (!currentState) {
+      if (input === "start") {
+        currentState = "start";
+        printToTerminal(game[currentState].text);
+        showHint();
+      } else {
+        printToTerminal('請輸入 "start" 開始遊戲。');
+      }
+      return;
+    }
+
+    const stateObj = game[currentState];
+    if (stateObj.commands && stateObj.commands[input]) {
+      currentState = stateObj.commands[input];
+      printToTerminal(game[currentState].text);
+      showHint();
+    } else {
+      printToTerminal(game.unknown.text);
+      showHint();
+    }
+  }
+
+  userInput.addEventListener('keydown', (e) => {
+    if (e.key === "Enter") {
+      printToTerminal("> " + userInput.value);
+      handleInput(userInput.value);
+      userInput.value = '';
+    }
+  });
+</script>
+
+</body>
+</html>
