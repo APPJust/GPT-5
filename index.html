@@ -44,6 +44,7 @@
         <div class="flex items-center gap-3">
           <button id="btnStart" class="px-3 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-medium shadow">開始聽寫</button>
           <button id="btnStop" class="px-3 py-2 rounded-xl bg-slate-200 hover:bg-slate-300 text-slate-900 font-medium">停止</button>
+          <button id="btnSpeakZh" class="px-3 py-2 rounded-xl bg-amber-500 hover:bg-amber-600 text-white font-medium shadow">朗讀中文</button>
         </div>
       </div>
 
@@ -80,6 +81,7 @@
         <div class="flex items-center gap-2">
           <button id="btnCopy" class="px-3 py-2 rounded-xl bg-slate-200 hover:bg-slate-300 text-slate-900 font-medium">複製翻譯</button>
           <button id="btnClear" class="px-3 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-900">清除</button>
+          <button id="btnSpeakViManual" class="px-3 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-medium shadow">朗讀越南語</button>
         </div>
       </div>
 
@@ -158,6 +160,8 @@
     const outBox = el('outBox');
     const btnCopy = el('btnCopy');
     const btnClear = el('btnClear');
+    const btnSpeakZh = el('btnSpeakZh');
+    const btnSpeakViManual = el('btnSpeakViManual');
     const chkTranslateInterim = el('chkTranslateInterim');
     const chkAutoSpeak = el('chkAutoSpeak');
     const chkOverlay = el('chkOverlay');
@@ -188,12 +192,45 @@
       speechSynthesis.onvoiceschanged = loadVoices;
     }
 
-    function pickVietnameseVoice() {
-      const byName = voices.find(v => v.name === voiceSelect.value);
-      if (byName) return byName;
-      const viFirst = voices.find(v => /vi/i.test(v.lang));
-      if (viFirst) return viFirst;
+    $1    // 挑選中文語音（優先 zh-TW）
+    function pickChineseVoice() {
+      if (!voices || !voices.length) voices = speechSynthesis.getVoices();
+      const prefs = [/zh-TW/i, /cmn-hant-tw/i, /zh-Hant/i, /zh-HK/i, /zh/i, /chinese/i, /yue/i];
+      for (const re of prefs) {
+        const byLang = voices.find(v => re.test(v.lang || ''));
+        if (byLang) return byLang;
+        const byName = voices.find(v => re.test(v.name || ''));
+        if (byName) return byName;
+      }
       return voices[0];
+    }
+
+    // 手動朗讀：越南語（不受自動語音開關影響）
+    function speakViNow(text) {
+      if (!text || !('speechSynthesis' in window)) return;
+      const u = new SpeechSynthesisUtterance(text);
+      const v = pickVietnameseVoice();
+      if (v) u.voice = v;
+      u.lang = 'vi-VN';
+      u.rate = parseFloat(rate.value || '1');
+      u.pitch = parseFloat(pitch.value || '1');
+      u.volume = parseFloat(volume.value || '1');
+      speechSynthesis.cancel();
+      speechSynthesis.speak(u);
+    }
+
+    // 手動朗讀：中文（輸入區內容）
+    function speakZh(text) {
+      if (!text || !('speechSynthesis' in window)) return;
+      const u = new SpeechSynthesisUtterance(text);
+      const v = pickChineseVoice();
+      if (v) u.voice = v;
+      u.lang = 'zh-TW';
+      u.rate = parseFloat(rate.value || '1');
+      u.pitch = parseFloat(pitch.value || '1');
+      u.volume = parseFloat(volume.value || '1');
+      speechSynthesis.cancel();
+      speechSynthesis.speak(u);
     }
 
     function speakVi(text) {
@@ -290,6 +327,19 @@
       asrInterim.textContent = '';
       outText.textContent = '';
       overlayText.textContent = '';
+    });
+
+    // ====== 手動朗讀按鈕 ======
+    btnSpeakZh.addEventListener('click', () => {
+      const zh = (textInput.value || (asrFinal.textContent + ' ' + asrInterim.textContent)).trim();
+      if (!zh) return;
+      speakZh(zh);
+    });
+
+    btnSpeakViManual.addEventListener('click', () => {
+      const vi = (overlayText.textContent || outText.textContent || '').trim();
+      if (!vi) return;
+      speakViNow(vi);
     });
 
     // ====== 語音辨識（ASR） ======
