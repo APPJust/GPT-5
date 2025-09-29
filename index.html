@@ -192,7 +192,7 @@
       speechSynthesis.onvoiceschanged = loadVoices;
     }
 
-    $1    // 挑選中文語音（優先 zh-TW）
+    // 挑選中文語音（優先 zh-TW）
     function pickChineseVoice() {
       if (!voices || !voices.length) voices = speechSynthesis.getVoices();
       const prefs = [/zh-TW/i, /cmn-hant-tw/i, /zh-Hant/i, /zh-HK/i, /zh/i, /chinese/i, /yue/i];
@@ -203,6 +203,15 @@
         if (byName) return byName;
       }
       return voices[0];
+    }
+    // 語音選擇：越南語（優先 vi-VN）
+    function pickVietnameseVoice() {
+      if (!voices || !voices.length) voices = speechSynthesis.getVoices();
+      const sel = voiceSelect && voiceSelect.value;
+      const byName = voices.find(v => v.name === sel);
+      if (byName) return byName;
+      const viFirst = voices.find(v => /vi/i.test(v.lang || '') || /vietnam/i.test(v.name || ''));
+      return viFirst || voices[0];
     }
 
     // 手動朗讀：越南語（不受自動語音開關影響）
@@ -346,6 +355,7 @@
     const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
     let recognition = null;
     let listening = false;
+    let keepAlive = false;
 
     function updateMicStatus() {
       if (listening) {
@@ -368,7 +378,12 @@
       r.maxAlternatives = 1;
 
       r.onstart = () => { listening = true; updateMicStatus(); };
-      r.onend = () => { listening = false; updateMicStatus(); };
+      r.onend = () => {
+        listening = false; updateMicStatus();
+        if (keepAlive) {
+          try { r.start(); listening = true; updateMicStatus(); } catch (e) { console.warn('ASR restart failed:', e); }
+        }
+      };
       r.onerror = (ev) => {
         console.warn('ASR error:', ev);
         listening = false; updateMicStatus();
@@ -405,10 +420,13 @@
     function startListening() {
       if (!recognition) recognition = initRecognition();
       if (!recognition) return;
-      try { recognition.start(); } catch {}
+      keepAlive = true;
+      try { recognition.start(); } catch (e) { console.warn('ASR start error:', e); }
+    } catch {}
     }
     function stopListening() {
-      if (recognition) recognition.stop();
+      keepAlive = false;
+      if (recognition) { try { recognition.stop(); } catch (e) { console.warn('ASR stop error:', e); } }
     }
 
     btnStart.addEventListener('click', startListening);
