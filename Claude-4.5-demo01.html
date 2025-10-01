@@ -1,0 +1,388 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>3D粒子互動遊戲 - 作者:李振偉</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            overflow: hidden;
+        }
+        
+        body {
+            font-family: 'Arial', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+        
+        #canvas {
+            display: block;
+            cursor: crosshair;
+            box-shadow: 0 0 50px rgba(0, 0, 0, 0.3);
+        }
+        
+        .info-panel {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            background: rgba(0, 0, 0, 0.7);
+            color: white;
+            padding: 15px 20px;
+            border-radius: 10px;
+            font-size: 14px;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+            z-index: 100;
+        }
+        
+        .info-panel h3 {
+            margin: 0 0 10px 0;
+            font-size: 16px;
+            color: #4facfe;
+            text-shadow: 0 0 10px rgba(79, 172, 254, 0.8);
+        }
+        
+        .info-panel p {
+            margin: 5px 0;
+            font-weight: 300;
+        }
+        
+        .info-panel .value {
+            color: #00f2fe;
+            font-weight: bold;
+            text-shadow: 0 0 5px rgba(0, 242, 254, 0.5);
+        }
+        
+        .author {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: rgba(0, 0, 0, 0.7);
+            color: white;
+            padding: 10px 20px;
+            border-radius: 10px;
+            font-size: 16px;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+            z-index: 100;
+            font-weight: bold;
+            background: linear-gradient(135deg, rgba(102, 126, 234, 0.8), rgba(118, 75, 162, 0.8));
+        }
+        
+        .instructions {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: rgba(0, 0, 0, 0.7);
+            color: white;
+            padding: 15px 20px;
+            border-radius: 10px;
+            font-size: 12px;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+            z-index: 100;
+            max-width: 200px;
+        }
+        
+        .instructions h4 {
+            margin: 0 0 8px 0;
+            color: #f093fb;
+            font-size: 14px;
+        }
+        
+        .instructions p {
+            margin: 4px 0;
+            line-height: 1.4;
+        }
+
+        @media (max-width: 768px) {
+            .info-panel, .instructions {
+                font-size: 11px;
+                padding: 10px 15px;
+            }
+            
+            .author {
+                font-size: 14px;
+                padding: 8px 15px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <canvas id="canvas"></canvas>
+    
+    <div class="info-panel">
+        <h3>系統資訊</h3>
+        <p>FPS: <span class="value" id="fps">60</span></p>
+        <p>粒子數量: <span class="value" id="particleCount">0</span></p>
+        <p>滑鼠位置: <span class="value" id="mousePos">-</span></p>
+    </div>
+    
+    <div class="instructions">
+        <h4>操作說明</h4>
+        <p>🖱️ 移動滑鼠吸引粒子</p>
+        <p>🖱️ 點擊產生爆炸效果</p>
+        <p>📱 支援觸控操作</p>
+    </div>
+    
+    <div class="author">作者:李振偉</div>
+
+    <script>
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        
+        // 設置畫布大小
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+        
+        // 粒子類別
+        class Particle {
+            constructor(x, y) {
+                this.x = x;
+                this.y = y;
+                this.vx = (Math.random() - 0.5) * 2;
+                this.vy = (Math.random() - 0.5) * 2;
+                this.radius = Math.random() * 2 + 1;
+                this.hue = Math.random() * 360;
+                this.life = 1;
+                this.opacity = 1;
+            }
+            
+            update(mouseX, mouseY, particles, isExploding) {
+                if (isExploding) {
+                    // 爆炸效果
+                    const dx = this.x - mouseX;
+                    const dy = this.y - mouseY;
+                    const distance = Math.sqrt(dx * dx + dy * dy);
+                    
+                    if (distance < 200) {
+                        const force = (200 - distance) / 200;
+                        this.vx += (dx / distance) * force * 20;
+                        this.vy += (dy / distance) * force * 20;
+                    }
+                } else if (mouseX !== null && mouseY !== null) {
+                    // 吸引效果
+                    const dx = mouseX - this.x;
+                    const dy = mouseY - this.y;
+                    const distance = Math.sqrt(dx * dx + dy * dy);
+                    
+                    if (distance > 0) {
+                        const force = Math.min(distance / 1000, 1);
+                        const angle = Math.atan2(dy, dx);
+                        
+                        // 螺旋效果
+                        const spiralAngle = angle + Math.sin(distance * 0.01) * 0.5;
+                        this.vx += Math.cos(spiralAngle) * force * 0.5;
+                        this.vy += Math.sin(spiralAngle) * force * 0.5;
+                    }
+                }
+                
+                // 重力效果
+                this.vy += 0.02;
+                
+                // 粒子間排斥力
+                for (let other of particles) {
+                    if (other === this) continue;
+                    
+                    const dx = this.x - other.x;
+                    const dy = this.y - other.y;
+                    const distance = Math.sqrt(dx * dx + dy * dy);
+                    
+                    if (distance < 20 && distance > 0) {
+                        const force = (20 - distance) / 20;
+                        this.vx += (dx / distance) * force * 0.2;
+                        this.vy += (dy / distance) * force * 0.2;
+                    }
+                }
+                
+                // 速度衰減
+                this.vx *= 0.98;
+                this.vy *= 0.98;
+                
+                // 更新位置
+                this.x += this.vx;
+                this.y += this.vy;
+                
+                // 邊界反彈
+                if (this.x < 0 || this.x > canvas.width) {
+                    this.vx *= -0.8;
+                    this.x = Math.max(0, Math.min(canvas.width, this.x));
+                }
+                if (this.y < 0 || this.y > canvas.height) {
+                    this.vy *= -0.8;
+                    this.y = Math.max(0, Math.min(canvas.height, this.y));
+                }
+                
+                // 色彩變化
+                this.hue += 0.5;
+                if (this.hue > 360) this.hue = 0;
+            }
+            
+            draw() {
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+                
+                // 發光效果
+                const gradient = ctx.createRadialGradient(
+                    this.x, this.y, 0,
+                    this.x, this.y, this.radius * 2
+                );
+                gradient.addColorStop(0, `hsla(${this.hue}, 100%, 60%, ${this.opacity})`);
+                gradient.addColorStop(0.5, `hsla(${this.hue}, 100%, 50%, ${this.opacity * 0.5})`);
+                gradient.addColorStop(1, `hsla(${this.hue}, 100%, 40%, 0)`);
+                
+                ctx.fillStyle = gradient;
+                ctx.fill();
+            }
+        }
+        
+        // 初始化粒子
+        const particles = [];
+        const particleCount = 1500;
+        
+        for (let i = 0; i < particleCount; i++) {
+            particles.push(new Particle(
+                Math.random() * canvas.width,
+                Math.random() * canvas.height
+            ));
+        }
+        
+        // 滑鼠/觸控位置
+        let mouseX = null;
+        let mouseY = null;
+        let isExploding = false;
+        let explosionTimer = 0;
+        
+        // FPS計數
+        let fps = 60;
+        let frameCount = 0;
+        let lastTime = performance.now();
+        
+        // 事件監聽
+        function updateMousePosition(e) {
+            const rect = canvas.getBoundingClientRect();
+            mouseX = e.clientX - rect.left;
+            mouseY = e.clientY - rect.top;
+        }
+        
+        canvas.addEventListener('mousemove', updateMousePosition);
+        
+        canvas.addEventListener('click', (e) => {
+            updateMousePosition(e);
+            isExploding = true;
+            explosionTimer = 20;
+        });
+        
+        // 觸控支援
+        canvas.addEventListener('touchmove', (e) => {
+            e.preventDefault();
+            const rect = canvas.getBoundingClientRect();
+            const touch = e.touches[0];
+            mouseX = touch.clientX - rect.left;
+            mouseY = touch.clientY - rect.top;
+        }, { passive: false });
+        
+        canvas.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            const rect = canvas.getBoundingClientRect();
+            const touch = e.touches[0];
+            mouseX = touch.clientX - rect.left;
+            mouseY = touch.clientY - rect.top;
+            isExploding = true;
+            explosionTimer = 20;
+        }, { passive: false });
+        
+        canvas.addEventListener('touchend', () => {
+            mouseX = null;
+            mouseY = null;
+        });
+        
+        canvas.addEventListener('mouseleave', () => {
+            mouseX = null;
+            mouseY = null;
+        });
+        
+        // 視窗大小調整
+        window.addEventListener('resize', () => {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        });
+        
+        // 動畫循環
+        function animate() {
+            // 計算FPS
+            frameCount++;
+            const currentTime = performance.now();
+            if (currentTime - lastTime >= 1000) {
+                fps = Math.round((frameCount * 1000) / (currentTime - lastTime));
+                frameCount = 0;
+                lastTime = currentTime;
+                
+                // 更新顯示
+                document.getElementById('fps').textContent = fps;
+                document.getElementById('particleCount').textContent = particles.length;
+            }
+            
+            // 更新滑鼠位置顯示
+            if (mouseX !== null && mouseY !== null) {
+                document.getElementById('mousePos').textContent = 
+                    `${Math.round(mouseX)}, ${Math.round(mouseY)}`;
+            } else {
+                document.getElementById('mousePos').textContent = '-';
+            }
+            
+            // 漸層背景
+            const gradient = ctx.createLinearGradient(0, 0, canvas.width, canvas.height);
+            gradient.addColorStop(0, 'rgba(15, 12, 41, 0.95)');
+            gradient.addColorStop(0.5, 'rgba(48, 43, 99, 0.95)');
+            gradient.addColorStop(1, 'rgba(36, 36, 62, 0.95)');
+            ctx.fillStyle = gradient;
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            // 爆炸計時器
+            if (explosionTimer > 0) {
+                explosionTimer--;
+                if (explosionTimer === 0) {
+                    isExploding = false;
+                }
+            }
+            
+            // 更新和繪製粒子
+            for (let particle of particles) {
+                particle.update(mouseX, mouseY, particles, isExploding);
+                particle.draw();
+            }
+            
+            // 連線效果
+            ctx.strokeStyle = 'rgba(100, 200, 255, 0.1)';
+            ctx.lineWidth = 0.5;
+            for (let i = 0; i < particles.length; i++) {
+                for (let j = i + 1; j < particles.length; j++) {
+                    const dx = particles[i].x - particles[j].x;
+                    const dy = particles[i].y - particles[j].y;
+                    const distance = Math.sqrt(dx * dx + dy * dy);
+                    
+                    if (distance < 80) {
+                        ctx.beginPath();
+                        ctx.moveTo(particles[i].x, particles[i].y);
+                        ctx.lineTo(particles[j].x, particles[j].y);
+                        ctx.globalAlpha = (80 - distance) / 80 * 0.3;
+                        ctx.stroke();
+                        ctx.globalAlpha = 1;
+                    }
+                }
+            }
+            
+            requestAnimationFrame(animate);
+        }
+        
+        animate();
+    </script>
+</body>
+</html>

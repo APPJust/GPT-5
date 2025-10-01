@@ -1,0 +1,922 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>進階打磚塊遊戲 - 作者:李振偉</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Arial', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 10px;
+        }
+
+        .game-container {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            padding: 20px;
+            max-width: 800px;
+            width: 100%;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        h1 {
+            color: #667eea;
+            font-size: clamp(1.5rem, 4vw, 2.5rem);
+            margin-bottom: 5px;
+        }
+
+        .author {
+            color: #764ba2;
+            font-size: clamp(0.9rem, 2vw, 1.1rem);
+            font-weight: bold;
+        }
+
+        .info-panel {
+            display: flex;
+            justify-content: space-around;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-bottom: 15px;
+            padding: 15px;
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            border-radius: 10px;
+            color: white;
+        }
+
+        .info-item {
+            text-align: center;
+            font-size: clamp(0.8rem, 2vw, 1rem);
+        }
+
+        .info-item strong {
+            display: block;
+            font-size: clamp(1rem, 2.5vw, 1.3rem);
+            margin-top: 5px;
+        }
+
+        canvas {
+            display: block;
+            background: #1a1a2e;
+            border-radius: 10px;
+            width: 100%;
+            max-width: 760px;
+            height: auto;
+            aspect-ratio: 760 / 500;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+            cursor: none;
+        }
+
+        .controls {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin-top: 15px;
+            flex-wrap: wrap;
+        }
+
+        button {
+            padding: 12px 25px;
+            font-size: clamp(0.9rem, 2vw, 1rem);
+            border: none;
+            border-radius: 25px;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-weight: bold;
+            color: white;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+
+        .btn-secondary {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+        }
+
+        .btn-success {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+        }
+
+        button:active {
+            transform: translateY(0);
+        }
+
+        .powerups {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin-top: 15px;
+            flex-wrap: wrap;
+        }
+
+        .powerup {
+            padding: 8px 15px;
+            background: rgba(102, 126, 234, 0.2);
+            border-radius: 15px;
+            font-size: clamp(0.8rem, 1.8vw, 0.9rem);
+            color: #667eea;
+            font-weight: bold;
+        }
+
+        .powerup.active {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            animation: pulse 1s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+
+        .modal-content {
+            background: white;
+            padding: 30px;
+            border-radius: 20px;
+            text-align: center;
+            max-width: 400px;
+            width: 90%;
+        }
+
+        .modal-content h2 {
+            color: #667eea;
+            margin-bottom: 20px;
+        }
+
+        @media (max-width: 600px) {
+            .game-container {
+                padding: 15px;
+            }
+            
+            .info-panel {
+                padding: 10px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="game-container">
+        <div class="header">
+            <h1>🎮 進階打磚塊遊戲</h1>
+            <p class="author">作者: 李振偉</p>
+        </div>
+
+        <div class="info-panel">
+            <div class="info-item">
+                <span>得分</span>
+                <strong id="score">0</strong>
+            </div>
+            <div class="info-item">
+                <span>生命</span>
+                <strong id="lives">3</strong>
+            </div>
+            <div class="info-item">
+                <span>關卡</span>
+                <strong id="level">1</strong>
+            </div>
+            <div class="info-item">
+                <span>連擊</span>
+                <strong id="combo">0</strong>
+            </div>
+        </div>
+
+        <canvas id="gameCanvas"></canvas>
+
+        <div class="powerups">
+            <div class="powerup" id="powerup-speed">⚡ 加速球</div>
+            <div class="powerup" id="powerup-multi">🔮 多球</div>
+            <div class="powerup" id="powerup-wide">📏 擴大擋板</div>
+            <div class="powerup" id="powerup-pierce">💎 穿透球</div>
+        </div>
+
+        <div class="controls">
+            <button class="btn-primary" onclick="game.start()">開始遊戲</button>
+            <button class="btn-secondary" onclick="game.togglePause()">暫停/繼續</button>
+            <button class="btn-success" onclick="game.toggleAI()">AI輔助</button>
+            <button class="btn-primary" onclick="game.restart()">重新開始</button>
+        </div>
+    </div>
+
+    <div class="modal" id="gameOverModal">
+        <div class="modal-content">
+            <h2 id="modalTitle">遊戲結束</h2>
+            <p id="modalMessage"></p>
+            <button class="btn-primary" onclick="game.restart(); document.getElementById('gameOverModal').style.display='none'">再玩一次</button>
+        </div>
+    </div>
+
+    <script>
+        class Game {
+            constructor() {
+                this.canvas = document.getElementById('gameCanvas');
+                this.ctx = this.canvas.getContext('2d');
+                
+                // 設置 canvas 尺寸
+                this.setCanvasSize();
+                window.addEventListener('resize', () => this.setCanvasSize());
+                
+                this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                
+                this.reset();
+                this.setupControls();
+                
+                this.animationId = null;
+            }
+
+            setCanvasSize() {
+                const container = this.canvas.parentElement;
+                const maxWidth = Math.min(760, container.clientWidth - 40);
+                this.canvas.width = maxWidth;
+                this.canvas.height = maxWidth * (500 / 760);
+                
+                if (this.paddle) {
+                    this.scaleGame();
+                }
+            }
+
+            scaleGame() {
+                const scale = this.canvas.width / 760;
+                this.paddleWidth = 100 * scale;
+                this.paddleHeight = 15 * scale;
+                this.ballRadius = 8 * scale;
+                this.brickRowCount = this.canvas.width > 400 ? 8 : 6;
+                this.brickColumnCount = 5;
+                this.brickWidth = (this.canvas.width - 80 * scale) / this.brickRowCount;
+                this.brickHeight = 25 * scale;
+                this.brickPadding = 10 * scale;
+                this.brickOffsetTop = 40 * scale;
+                this.brickOffsetLeft = 40 * scale;
+            }
+
+            reset() {
+                this.scaleGame();
+                
+                this.score = 0;
+                this.lives = 3;
+                this.level = 1;
+                this.combo = 0;
+                this.comboTimer = 0;
+                this.isPaused = false;
+                this.isGameOver = false;
+                this.aiEnabled = false;
+                
+                this.paddle = {
+                    x: this.canvas.width / 2 - this.paddleWidth / 2,
+                    y: this.canvas.height - 30,
+                    width: this.paddleWidth,
+                    height: this.paddleHeight,
+                    speed: 8
+                };
+                
+                this.balls = [{
+                    x: this.canvas.width / 2,
+                    y: this.canvas.height - 50,
+                    dx: 4,
+                    dy: -4,
+                    radius: this.ballRadius,
+                    speed: 4
+                }];
+                
+                this.particles = [];
+                this.powerups = [];
+                this.activePowerups = {
+                    speed: false,
+                    multi: false,
+                    wide: false,
+                    pierce: false
+                };
+                
+                this.mouseX = this.canvas.width / 2;
+                this.touchX = null;
+                
+                this.initBricks();
+                this.updateUI();
+            }
+
+            initBricks() {
+                this.bricks = [];
+                const patterns = [
+                    // 關卡1：彩虹圖案
+                    () => {
+                        for (let c = 0; c < this.brickColumnCount; c++) {
+                            this.bricks[c] = [];
+                            for (let r = 0; r < this.brickRowCount; r++) {
+                                const hue = (r / this.brickRowCount) * 360;
+                                this.bricks[c][r] = { 
+                                    x: 0, y: 0, 
+                                    status: 1, 
+                                    color: `hsl(${hue}, 70%, 60%)`,
+                                    hits: 1
+                                };
+                            }
+                        }
+                    },
+                    // 關卡2：愛心圖案
+                    () => {
+                        const heart = [
+                            [0,1,1,0,0,0,1,1],
+                            [1,1,1,1,0,1,1,1],
+                            [1,1,1,1,1,1,1,1],
+                            [0,1,1,1,1,1,1,0],
+                            [0,0,1,1,1,1,0,0]
+                        ];
+                        for (let c = 0; c < this.brickColumnCount; c++) {
+                            this.bricks[c] = [];
+                            for (let r = 0; r < this.brickRowCount; r++) {
+                                const exists = heart[c] && heart[c][r] === 1;
+                                this.bricks[c][r] = { 
+                                    x: 0, y: 0, 
+                                    status: exists ? 1 : 0, 
+                                    color: '#ff6b9d',
+                                    hits: exists ? 2 : 0
+                                };
+                            }
+                        }
+                    },
+                    // 關卡3：棋盤圖案（困難）
+                    () => {
+                        for (let c = 0; c < this.brickColumnCount; c++) {
+                            this.bricks[c] = [];
+                            for (let r = 0; r < this.brickRowCount; r++) {
+                                const isEven = (c + r) % 2 === 0;
+                                this.bricks[c][r] = { 
+                                    x: 0, y: 0, 
+                                    status: 1, 
+                                    color: isEven ? '#4facfe' : '#00f2fe',
+                                    hits: isEven ? 3 : 2
+                                };
+                            }
+                        }
+                    }
+                ];
+                
+                patterns[(this.level - 1) % 3]();
+            }
+
+            setupControls() {
+                // 鼠標控制
+                this.canvas.addEventListener('mousemove', (e) => {
+                    const rect = this.canvas.getBoundingClientRect();
+                    this.mouseX = (e.clientX - rect.left) * (this.canvas.width / rect.width);
+                    this.touchX = null; // 使用鼠標時禁用觸控
+                });
+                
+                // 觸控控制
+                this.canvas.addEventListener('touchmove', (e) => {
+                    e.preventDefault();
+                    const rect = this.canvas.getBoundingClientRect();
+                    this.touchX = (e.touches[0].clientX - rect.left) * (this.canvas.width / rect.width);
+                }, { passive: false });
+                
+                this.canvas.addEventListener('touchend', () => {
+                    this.touchX = null;
+                });
+                
+                // 鍵盤控制（暫停）
+                document.addEventListener('keydown', (e) => {
+                    if (e.key === ' ') {
+                        e.preventDefault();
+                        this.togglePause();
+                    }
+                });
+            }
+
+            start() {
+                if (!this.animationId) {
+                    this.isPaused = false;
+                    this.isGameOver = false;
+                    this.gameLoop();
+                }
+            }
+
+            togglePause() {
+                if (!this.isGameOver) {
+                    this.isPaused = !this.isPaused;
+                }
+            }
+
+            toggleAI() {
+                this.aiEnabled = !this.aiEnabled;
+            }
+
+            restart() {
+                if (this.animationId) {
+                    cancelAnimationFrame(this.animationId);
+                    this.animationId = null;
+                }
+                this.reset();
+                this.start();
+            }
+
+            updateUI() {
+                document.getElementById('score').textContent = this.score;
+                document.getElementById('lives').textContent = this.lives;
+                document.getElementById('level').textContent = this.level;
+                document.getElementById('combo').textContent = this.combo;
+                
+                Object.keys(this.activePowerups).forEach(key => {
+                    const elem = document.getElementById(`powerup-${key}`);
+                    if (this.activePowerups[key]) {
+                        elem.classList.add('active');
+                    } else {
+                        elem.classList.remove('active');
+                    }
+                });
+            }
+
+            playSound(frequency, duration = 0.1) {
+                const oscillator = this.audioContext.createOscillator();
+                const gainNode = this.audioContext.createGain();
+                
+                oscillator.connect(gainNode);
+                gainNode.connect(this.audioContext.destination);
+                
+                oscillator.frequency.value = frequency;
+                oscillator.type = 'sine';
+                
+                gainNode.gain.setValueAtTime(0.3, this.audioContext.currentTime);
+                gainNode.gain.exponentialRampToValueAtTime(0.01, this.audioContext.currentTime + duration);
+                
+                oscillator.start(this.audioContext.currentTime);
+                oscillator.stop(this.audioContext.currentTime + duration);
+            }
+
+            createParticles(x, y, color) {
+                for (let i = 0; i < 15; i++) {
+                    const angle = Math.random() * Math.PI * 2;
+                    const speed = Math.random() * 3 + 1;
+                    this.particles.push({
+                        x, y,
+                        dx: Math.cos(angle) * speed,
+                        dy: Math.sin(angle) * speed,
+                        color,
+                        life: 1,
+                        size: Math.random() * 4 + 2
+                    });
+                }
+            }
+
+            spawnPowerup(x, y) {
+                if (Math.random() < 0.3) {
+                    const types = ['speed', 'multi', 'wide', 'pierce'];
+                    const type = types[Math.floor(Math.random() * types.length)];
+                    const colors = {
+                        speed: '#ffeb3b',
+                        multi: '#9c27b0',
+                        wide: '#4caf50',
+                        pierce: '#ff5722'
+                    };
+                    
+                    this.powerups.push({
+                        x, y,
+                        dy: 2,
+                        type,
+                        color: colors[type],
+                        size: 15
+                    });
+                }
+            }
+
+            activatePowerup(type) {
+                this.activePowerups[type] = true;
+                
+                switch(type) {
+                    case 'speed':
+                        this.balls.forEach(ball => ball.speed *= 1.5);
+                        setTimeout(() => {
+                            this.activePowerups[type] = false;
+                            this.balls.forEach(ball => ball.speed /= 1.5);
+                            this.updateUI();
+                        }, 5000);
+                        break;
+                    case 'multi':
+                        const ball = this.balls[0];
+                        for (let i = 0; i < 2; i++) {
+                            this.balls.push({
+                                x: ball.x,
+                                y: ball.y,
+                                dx: ball.dx * (Math.random() * 0.5 + 0.75) * (Math.random() > 0.5 ? 1 : -1),
+                                dy: ball.dy * (Math.random() * 0.5 + 0.75),
+                                radius: ball.radius,
+                                speed: ball.speed
+                            });
+                        }
+                        setTimeout(() => {
+                            this.activePowerups[type] = false;
+                            this.updateUI();
+                        }, 1000);
+                        break;
+                    case 'wide':
+                        this.paddle.width *= 1.5;
+                        setTimeout(() => {
+                            this.activePowerups[type] = false;
+                            this.paddle.width /= 1.5;
+                            this.updateUI();
+                        }, 8000);
+                        break;
+                    case 'pierce':
+                        setTimeout(() => {
+                            this.activePowerups[type] = false;
+                            this.updateUI();
+                        }, 6000);
+                        break;
+                }
+                
+                this.playSound(800, 0.2);
+                this.updateUI();
+            }
+
+            predictBallPath(ball) {
+                const predictions = [];
+                let x = ball.x;
+                let y = ball.y;
+                let dx = ball.dx;
+                let dy = ball.dy;
+                
+                // 只預測到接近擋板的位置
+                for (let i = 0; i < 150; i++) {
+                    x += dx;
+                    y += dy;
+                    
+                    // 碰撞牆壁
+                    if (x + ball.radius > this.canvas.width || x - ball.radius < 0) {
+                        dx = -dx;
+                    }
+                    if (y - ball.radius < 0) {
+                        dy = -dy;
+                    }
+                    
+                    predictions.push({ x, y });
+                    
+                    // 接近擋板高度時停止預測
+                    if (y > this.paddle.y - 100) break;
+                }
+                
+                return predictions;
+            }
+
+            getAISuggestedPosition(ball) {
+                const prediction = this.predictBallPath(ball);
+                if (prediction.length > 0) {
+                    // 取預測路徑的後段位置（不是最佳位置）
+                    const targetIndex = Math.floor(prediction.length * 0.7);
+                    const target = prediction[targetIndex] || prediction[prediction.length - 1];
+                    
+                    // 添加一些隨機偏移，讓AI不完美
+                    const randomOffset = (Math.random() - 0.5) * this.paddle.width * 0.3;
+                    return target.x + randomOffset;
+                }
+                return ball.x;
+            }
+
+            update() {
+                if (this.isPaused || this.isGameOver) return;
+                
+                // 更新擋板位置 - 完全使用鼠標/觸控
+                let targetX;
+                
+                if (this.aiEnabled) {
+                    // AI輔助模式：顯示建議位置但仍由玩家控制
+                    targetX = this.touchX !== null ? this.touchX : this.mouseX;
+                } else {
+                    // 正常模式：純鼠標控制
+                    targetX = this.touchX !== null ? this.touchX : this.mouseX;
+                }
+                
+                // 平滑移動到目標位置
+                this.paddle.x = targetX - this.paddle.width / 2;
+                
+                // 限制擋板在畫布內
+                this.paddle.x = Math.max(0, Math.min(this.canvas.width - this.paddle.width, this.paddle.x));
+                
+                // 更新球
+                this.balls.forEach((ball, ballIndex) => {
+                    ball.x += ball.dx;
+                    ball.y += ball.dy;
+                    
+                    // 牆壁碰撞
+                    if (ball.x + ball.radius > this.canvas.width || ball.x - ball.radius < 0) {
+                        ball.dx = -ball.dx;
+                        this.playSound(300, 0.05);
+                    }
+                    if (ball.y - ball.radius < 0) {
+                        ball.dy = -ball.dy;
+                        this.playSound(300, 0.05);
+                    }
+                    
+                    // 擋板碰撞
+                    if (ball.y + ball.radius > this.paddle.y && 
+                        ball.y - ball.radius < this.paddle.y + this.paddle.height &&
+                        ball.x > this.paddle.x && 
+                        ball.x < this.paddle.x + this.paddle.width) {
+                        
+                        const hitPos = (ball.x - this.paddle.x) / this.paddle.width;
+                        const angle = (hitPos - 0.5) * Math.PI / 3;
+                        const speed = Math.sqrt(ball.dx * ball.dx + ball.dy * ball.dy);
+                        ball.dx = speed * Math.sin(angle);
+                        ball.dy = -speed * Math.cos(angle);
+                        
+                        this.playSound(400, 0.1);
+                    }
+                    
+                    // 球掉落
+                    if (ball.y - ball.radius > this.canvas.height) {
+                        this.balls.splice(ballIndex, 1);
+                        if (this.balls.length === 0) {
+                            this.lives--;
+                            this.combo = 0;
+                            this.updateUI();
+                            
+                            if (this.lives > 0) {
+                                this.balls.push({
+                                    x: this.canvas.width / 2,
+                                    y: this.canvas.height - 50,
+                                    dx: 4,
+                                    dy: -4,
+                                    radius: this.ballRadius,
+                                    speed: 4
+                                });
+                                this.playSound(200, 0.3);
+                            } else {
+                                this.gameOver(false);
+                            }
+                        }
+                    }
+                });
+                
+                // 磚塊碰撞
+                this.balls.forEach(ball => {
+                    for (let c = 0; c < this.brickColumnCount; c++) {
+                        for (let r = 0; r < this.brickRowCount; r++) {
+                            const b = this.bricks[c][r];
+                            if (b.status > 0) {
+                                b.x = r * (this.brickWidth + this.brickPadding) + this.brickOffsetLeft;
+                                b.y = c * (this.brickHeight + this.brickPadding) + this.brickOffsetTop;
+                                
+                                if (ball.x > b.x && ball.x < b.x + this.brickWidth &&
+                                    ball.y > b.y && ball.y < b.y + this.brickHeight) {
+                                    
+                                    if (!this.activePowerups.pierce) {
+                                        ball.dy = -ball.dy;
+                                    }
+                                    
+                                    b.hits--;
+                                    if (b.hits <= 0) {
+                                        b.status = 0;
+                                        this.score += 10 * (1 + this.combo * 0.1);
+                                        this.combo++;
+                                        this.comboTimer = 120;
+                                        
+                                        this.createParticles(b.x + this.brickWidth / 2, b.y + this.brickHeight / 2, b.color);
+                                        this.spawnPowerup(b.x + this.brickWidth / 2, b.y + this.brickHeight / 2);
+                                        
+                                        const frequency = 500 + this.combo * 50;
+                                        this.playSound(frequency, 0.1);
+                                    }
+                                    
+                                    this.updateUI();
+                                    
+                                    // 檢查是否過關
+                                    let allBroken = true;
+                                    for (let cc = 0; cc < this.brickColumnCount; cc++) {
+                                        for (let rr = 0; rr < this.brickRowCount; rr++) {
+                                            if (this.bricks[cc][rr].status > 0) {
+                                                allBroken = false;
+                                                break;
+                                            }
+                                        }
+                                        if (!allBroken) break;
+                                    }
+                                    
+                                    if (allBroken) {
+                                        this.nextLevel();
+                                    }
+                                }
+                            }
+                        }
+                    }
+                });
+                
+                // 更新粒子
+                this.particles = this.particles.filter(p => {
+                    p.x += p.dx;
+                    p.y += p.dy;
+                    p.dy += 0.2;
+                    p.life -= 0.02;
+                    return p.life > 0;
+                });
+                
+                // 更新道具
+                this.powerups = this.powerups.filter(p => {
+                    p.y += p.dy;
+                    
+                    if (p.y + p.size > this.paddle.y &&
+                        p.y < this.paddle.y + this.paddle.height &&
+                        p.x > this.paddle.x &&
+                        p.x < this.paddle.x + this.paddle.width) {
+                        this.activatePowerup(p.type);
+                        return false;
+                    }
+                    
+                    return p.y < this.canvas.height;
+                });
+                
+                // 連擊計時器
+                if (this.comboTimer > 0) {
+                    this.comboTimer--;
+                } else {
+                    this.combo = 0;
+                    this.updateUI();
+                }
+            }
+
+            draw() {
+                this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+                
+                // 繪製磚塊
+                for (let c = 0; c < this.brickColumnCount; c++) {
+                    for (let r = 0; r < this.brickRowCount; r++) {
+                        const b = this.bricks[c][r];
+                        if (b.status > 0) {
+                            this.ctx.fillStyle = b.color;
+                            this.ctx.shadowBlur = 10;
+                            this.ctx.shadowColor = b.color;
+                            this.ctx.fillRect(b.x, b.y, this.brickWidth, this.brickHeight);
+                            this.ctx.shadowBlur = 0;
+                            
+                            if (b.hits > 1) {
+                                this.ctx.fillStyle = 'rgba(255, 255, 255, 0.5)';
+                                this.ctx.font = `${this.brickHeight * 0.6}px Arial`;
+                                this.ctx.textAlign = 'center';
+                                this.ctx.textBaseline = 'middle';
+                                this.ctx.fillText(b.hits, b.x + this.brickWidth / 2, b.y + this.brickHeight / 2);
+                            }
+                        }
+                    }
+                }
+                
+                // 繪製擋板
+                const gradient = this.ctx.createLinearGradient(this.paddle.x, 0, this.paddle.x + this.paddle.width, 0);
+                gradient.addColorStop(0, '#667eea');
+                gradient.addColorStop(1, '#764ba2');
+                this.ctx.fillStyle = gradient;
+                this.ctx.fillRect(this.paddle.x, this.paddle.y, this.paddle.width, this.paddle.height);
+                
+                // AI輔助：顯示建議位置（半透明擋板）
+                if (this.aiEnabled && this.balls.length > 0) {
+                    const suggestedX = this.getAISuggestedPosition(this.balls[0]) - this.paddle.width / 2;
+                    const clampedX = Math.max(0, Math.min(this.canvas.width - this.paddle.width, suggestedX));
+                    
+                    this.ctx.fillStyle = 'rgba(255, 255, 255, 0.3)';
+                    this.ctx.fillRect(clampedX, this.paddle.y, this.paddle.width, this.paddle.height);
+                }
+                
+                // 繪製球
+                this.balls.forEach(ball => {
+                    this.ctx.beginPath();
+                    this.ctx.arc(ball.x, ball.y, ball.radius, 0, Math.PI * 2);
+                    this.ctx.fillStyle = this.activePowerups.pierce ? '#ff5722' : '#ffffff';
+                    this.ctx.shadowBlur = 15;
+                    this.ctx.shadowColor = this.activePowerups.pierce ? '#ff5722' : '#ffffff';
+                    this.ctx.fill();
+                    this.ctx.shadowBlur = 0;
+                });
+                
+                // AI預測軌跡（虛線）
+                if (this.aiEnabled && this.balls.length > 0) {
+                    const predictions = this.predictBallPath(this.balls[0]);
+                    this.ctx.strokeStyle = 'rgba(102, 255, 234, 0.4)';
+                    this.ctx.lineWidth = 2;
+                    this.ctx.setLineDash([5, 5]);
+                    this.ctx.beginPath();
+                    predictions.forEach((p, i) => {
+                        if (i === 0) {
+                            this.ctx.moveTo(p.x, p.y);
+                        } else {
+                            this.ctx.lineTo(p.x, p.y);
+                        }
+                    });
+                    this.ctx.stroke();
+                    this.ctx.setLineDash([]);
+                }
+                
+                // 繪製粒子
+                this.particles.forEach(p => {
+                    this.ctx.globalAlpha = p.life;
+                    this.ctx.fillStyle = p.color;
+                    this.ctx.fillRect(p.x, p.y, p.size, p.size);
+                });
+                this.ctx.globalAlpha = 1;
+                
+                // 繪製道具
+                this.powerups.forEach(p => {
+                    this.ctx.fillStyle = p.color;
+                    this.ctx.shadowBlur = 10;
+                    this.ctx.shadowColor = p.color;
+                    this.ctx.beginPath();
+                    this.ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+                    this.ctx.fill();
+                    this.ctx.shadowBlur = 0;
+                });
+                
+                // 繪製鼠標指示器
+                if (!this.isPaused && !this.isGameOver) {
+                    const cursorX = this.touchX !== null ? this.touchX : this.mouseX;
+                    this.ctx.fillStyle = 'rgba(255, 255, 255, 0.3)';
+                    this.ctx.fillRect(cursorX - 2, 0, 4, this.canvas.height);
+                }
+                
+                // 暫停提示
+                if (this.isPaused) {
+                    this.ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
+                    this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+                    this.ctx.fillStyle = '#ffffff';
+                    this.ctx.font = `${this.canvas.width * 0.08}px Arial`;
+                    this.ctx.textAlign = 'center';
+                    this.ctx.fillText('暫停', this.canvas.width / 2, this.canvas.height / 2);
+                }
+            }
+
+            nextLevel() {
+                this.level++;
+                this.score += 100;
+                this.playSound(1000, 0.3);
+                
+                if (this.level > 3) {
+                    this.gameOver(true);
+                } else {
+                    this.initBricks();
+                    this.balls = [{
+                        x: this.canvas.width / 2,
+                        y: this.canvas.height - 50,
+                        dx: 4 + this.level,
+                        dy: -4 - this.level,
+                        radius: this.ballRadius,
+                        speed: 4 + this.level
+                    }];
+                    this.updateUI();
+                }
+            }
+
+            gameOver(won) {
+                this.isGameOver = true;
+                const modal = document.getElementById('gameOverModal');
+                const title = document.getElementById('modalTitle');
+                const message = document.getElementById('modalMessage');
+                
+                if (won) {
+                    title.textContent = '🎉 恭喜過關！';
+                    message.textContent = `你完成了所有關卡！總得分：${Math.floor(this.score)}`;
+                } else {
+                    title.textContent = '😢 遊戲結束';
+                    message.textContent = `最終得分：${Math.floor(this.score)}`;
+                }
+                
+                modal.style.display = 'flex';
+            }
+
+            gameLoop() {
+                this.update();
+                this.draw();
+                this.animationId = requestAnimationFrame(() => this.gameLoop());
+            }
+        }
+
+        const game = new Game();
+    </script>
+</body>
+</html>
