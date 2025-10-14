@@ -1,0 +1,426 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BLE Advertising 掃描測距（實驗性）</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            padding: 40px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        }
+        
+        h1 {
+            color: #333;
+            margin-bottom: 20px;
+            text-align: center;
+            font-size: 28px;
+        }
+        
+        .warning {
+            background: #fff3cd;
+            border-left: 4px solid #ffc107;
+            padding: 15px;
+            margin-bottom: 20px;
+            border-radius: 5px;
+            color: #856404;
+        }
+        
+        .warning strong {
+            display: block;
+            margin-bottom: 5px;
+        }
+        
+        .btn {
+            padding: 15px 30px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: transform 0.2s;
+            margin-right: 10px;
+            margin-bottom: 10px;
+        }
+        
+        .btn:hover {
+            transform: translateY(-2px);
+        }
+        
+        .btn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        .btn-stop {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+        }
+        
+        .controls {
+            margin-bottom: 30px;
+            text-align: center;
+        }
+        
+        .devices-container {
+            max-height: 500px;
+            overflow-y: auto;
+        }
+        
+        .device-card {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 15px;
+            border-left: 4px solid transparent;
+            transition: all 0.3s;
+        }
+        
+        .device-very-close {
+            border-left-color: #28a745;
+            background: #d4edda;
+        }
+        
+        .device-close {
+            border-left-color: #17a2b8;
+            background: #d1ecf1;
+        }
+        
+        .device-medium {
+            border-left-color: #ffc107;
+            background: #fff3cd;
+        }
+        
+        .device-far {
+            border-left-color: #dc3545;
+            background: #f8d7da;
+        }
+        
+        .device-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+        
+        .device-name {
+            font-size: 18px;
+            font-weight: bold;
+            color: #333;
+        }
+        
+        .device-distance {
+            font-size: 20px;
+            font-weight: bold;
+            padding: 5px 15px;
+            border-radius: 20px;
+            background: rgba(255,255,255,0.7);
+        }
+        
+        .device-info {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 10px;
+            margin-top: 10px;
+        }
+        
+        .info-item {
+            font-size: 14px;
+            color: #666;
+        }
+        
+        .info-label {
+            font-weight: 500;
+        }
+        
+        .info-value {
+            color: #333;
+            font-weight: bold;
+        }
+        
+        .no-devices {
+            text-align: center;
+            padding: 40px;
+            color: #999;
+            font-size: 16px;
+        }
+        
+        .error {
+            background: #f8d7da;
+            color: #721c24;
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            border-left: 4px solid #dc3545;
+        }
+        
+        .instructions {
+            background: #e7f3ff;
+            border-left: 4px solid #2196F3;
+            padding: 15px;
+            margin-bottom: 20px;
+            border-radius: 5px;
+            color: #004085;
+            font-size: 14px;
+            line-height: 1.6;
+        }
+        
+        .instructions ol {
+            margin-left: 20px;
+            margin-top: 10px;
+        }
+        
+        .instructions li {
+            margin-bottom: 5px;
+        }
+        
+        @media (max-width: 600px) {
+            .container {
+                padding: 20px;
+            }
+            
+            h1 {
+                font-size: 24px;
+            }
+            
+            .device-info {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔍 BLE Advertising 掃描測距</h1>
+        
+        <div class="warning">
+            <strong>⚠️ 實驗性功能警告</strong>
+            此功能使用實驗性的 Web Bluetooth Scanning API，目前大多數瀏覽器不支援。這只是一個概念展示。
+        </div>
+        
+        <div class="instructions">
+            <strong>📋 啟用方法（Chrome）：</strong>
+            <ol>
+                <li>在網址列輸入：<code>chrome://flags</code></li>
+                <li>搜尋：<code>Experimental Web Platform features</code></li>
+                <li>設定為：<code>Enabled</code></li>
+                <li>重新啟動瀏覽器</li>
+                <li>必須使用 HTTPS 連線</li>
+            </ol>
+        </div>
+        
+        <div id="errorMsg" class="error" style="display: none;"></div>
+        
+        <div class="controls">
+            <button class="btn" id="startBtn">開始掃描</button>
+            <button class="btn btn-stop" id="stopBtn" disabled>停止掃描</button>
+        </div>
+        
+        <div class="devices-container" id="devicesContainer">
+            <div class="no-devices">點擊「開始掃描」來偵測附近的 BLE 設備</div>
+        </div>
+    </div>
+
+    <script>
+        const startBtn = document.getElementById('startBtn');
+        const stopBtn = document.getElementById('stopBtn');
+        const devicesContainer = document.getElementById('devicesContainer');
+        const errorMsg = document.getElementById('errorMsg');
+        
+        let scanning = false;
+        let devices = new Map();
+        let scanAbortController = null;
+
+        // 檢查 API 支援
+        if (!navigator.bluetooth) {
+            showError('您的瀏覽器不支援 Web Bluetooth API');
+            startBtn.disabled = true;
+        }
+
+        startBtn.addEventListener('click', startScanning);
+        stopBtn.addEventListener('click', stopScanning);
+
+        async function startScanning() {
+            try {
+                errorMsg.style.display = 'none';
+                
+                // 檢查是否支援 requestLEScan（實驗性 API）
+                if (!navigator.bluetooth.requestLEScan) {
+                    throw new Error('您的瀏覽器不支援 Bluetooth Scanning API。請啟用實驗性功能或使用支援的瀏覽器。');
+                }
+
+                scanAbortController = new AbortController();
+                
+                // 開始掃描（這需要用戶手勢觸發）
+                const scan = await navigator.bluetooth.requestLEScan({
+                    acceptAllAdvertisements: true,
+                    signal: scanAbortController.signal
+                });
+
+                scanning = true;
+                startBtn.disabled = true;
+                stopBtn.disabled = false;
+
+                // 監聽 advertising 事件
+                navigator.bluetooth.addEventListener('advertisementreceived', handleAdvertisement);
+
+                console.log('開始掃描 BLE 設備...');
+
+            } catch (error) {
+                console.error('掃描錯誤:', error);
+                showError('掃描失敗: ' + error.message);
+            }
+        }
+
+        function stopScanning() {
+            if (scanAbortController) {
+                scanAbortController.abort();
+            }
+            
+            navigator.bluetooth.removeEventListener('advertisementreceived', handleAdvertisement);
+            
+            scanning = false;
+            startBtn.disabled = false;
+            stopBtn.disabled = true;
+            
+            console.log('停止掃描');
+        }
+
+        function handleAdvertisement(event) {
+            const device = event.device;
+            const rssi = event.rssi;
+            const txPower = event.txPower || -59; // 預設發射功率
+            
+            // 計算距離
+            const distance = calculateDistance(rssi, txPower);
+            
+            // 更新設備資訊
+            const deviceData = {
+                name: device.name || '未命名設備',
+                id: device.id,
+                rssi: rssi,
+                txPower: txPower,
+                distance: distance,
+                lastSeen: Date.now(),
+                manufacturerData: event.manufacturerData,
+                serviceData: event.serviceData
+            };
+            
+            devices.set(device.id, deviceData);
+            
+            // 更新顯示
+            updateDevicesDisplay();
+        }
+
+        function calculateDistance(rssi, txPower) {
+            // 使用對數路徑損耗模型估算距離
+            // d = 10 ^ ((TxPower - RSSI) / (10 * n))
+            // n = 路徑損耗指數，室內通常為 2-4
+            const n = 2.5;
+            const distance = Math.pow(10, (txPower - rssi) / (10 * n));
+            return distance;
+        }
+
+        function updateDevicesDisplay() {
+            // 清除過期設備（超過 5 秒未見）
+            const now = Date.now();
+            for (const [id, device] of devices.entries()) {
+                if (now - device.lastSeen > 5000) {
+                    devices.delete(id);
+                }
+            }
+
+            if (devices.size === 0) {
+                devicesContainer.innerHTML = '<div class="no-devices">未偵測到設備</div>';
+                return;
+            }
+
+            // 按距離排序
+            const sortedDevices = Array.from(devices.values()).sort((a, b) => a.distance - b.distance);
+
+            devicesContainer.innerHTML = sortedDevices.map(device => {
+                const distanceClass = getDistanceClass(device.distance);
+                const distanceText = getDistanceText(device.distance);
+                
+                return `
+                    <div class="device-card ${distanceClass}">
+                        <div class="device-header">
+                            <div class="device-name">${escapeHtml(device.name)}</div>
+                            <div class="device-distance">${distanceText}</div>
+                        </div>
+                        <div class="device-info">
+                            <div class="info-item">
+                                <span class="info-label">RSSI:</span>
+                                <span class="info-value">${device.rssi} dBm</span>
+                            </div>
+                            <div class="info-item">
+                                <span class="info-label">發射功率:</span>
+                                <span class="info-value">${device.txPower} dBm</span>
+                            </div>
+                            <div class="info-item">
+                                <span class="info-label">預估距離:</span>
+                                <span class="info-value">${device.distance.toFixed(2)} 公尺</span>
+                            </div>
+                            <div class="info-item">
+                                <span class="info-label">設備 ID:</span>
+                                <span class="info-value">${device.id.substring(0, 8)}...</span>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function getDistanceClass(distance) {
+            if (distance < 0.5) return 'device-very-close';
+            if (distance < 2) return 'device-close';
+            if (distance < 5) return 'device-medium';
+            return 'device-far';
+        }
+
+        function getDistanceText(distance) {
+            if (distance < 0.5) return '非常接近';
+            if (distance < 2) return '接近';
+            if (distance < 5) return '中等距離';
+            return '遠離';
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        function showError(message) {
+            errorMsg.textContent = message;
+            errorMsg.style.display = 'block';
+        }
+
+        // 定期更新顯示（移除過期設備）
+        setInterval(() => {
+            if (scanning) {
+                updateDevicesDisplay();
+            }
+        }, 1000);
+    </script>
+</body>
+</html>
