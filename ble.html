@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>BLE Advertising 掃描測距（實驗性）</title>
+    <title>BLE Advertising 掃描測距</title>
     <style>
         * {
             margin: 0;
@@ -19,7 +19,7 @@
         }
         
         .container {
-            max-width: 800px;
+            max-width: 900px;
             margin: 0 auto;
             background: white;
             border-radius: 20px;
@@ -44,6 +44,20 @@
         }
         
         .warning strong {
+            display: block;
+            margin-bottom: 5px;
+        }
+        
+        .info {
+            background: #d1ecf1;
+            border-left: 4px solid #17a2b8;
+            padding: 15px;
+            margin-bottom: 20px;
+            border-radius: 5px;
+            color: #0c5460;
+        }
+        
+        .info strong {
             display: block;
             margin-bottom: 5px;
         }
@@ -76,14 +90,212 @@
             background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
         }
         
+        .btn-demo {
+            background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+        }
+        
         .controls {
             margin-bottom: 30px;
             text-align: center;
         }
         
+        /* 掃描狀態區域 */
+        .scan-status {
+            background: linear-gradient(135deg, #e0e7ff 0%, #f3e8ff 100%);
+            border-radius: 15px;
+            padding: 30px;
+            margin-bottom: 30px;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .scan-status.scanning {
+            background: linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%);
+        }
+        
+        .scan-status.error {
+            background: linear-gradient(135deg, #fee2e2 0%, #fecaca 100%);
+        }
+        
+        .scan-status-icon {
+            font-size: 60px;
+            margin-bottom: 15px;
+            display: inline-block;
+        }
+        
+        .scanning .scan-status-icon {
+            animation: pulse 1.5s ease-in-out infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); opacity: 1; }
+            50% { transform: scale(1.1); opacity: 0.8; }
+        }
+        
+        .scan-status-text {
+            font-size: 24px;
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 10px;
+        }
+        
+        .scan-status-subtext {
+            font-size: 16px;
+            color: #666;
+        }
+        
+        /* 掃描動畫波紋 */
+        .radar-container {
+            width: 200px;
+            height: 200px;
+            margin: 20px auto;
+            position: relative;
+            display: none;
+        }
+        
+        .scanning .radar-container {
+            display: block;
+        }
+        
+        .radar-wave {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 40px;
+            height: 40px;
+            border: 3px solid #667eea;
+            border-radius: 50%;
+            animation: radarWave 2s ease-out infinite;
+        }
+        
+        .radar-wave:nth-child(2) {
+            animation-delay: 0.5s;
+        }
+        
+        .radar-wave:nth-child(3) {
+            animation-delay: 1s;
+        }
+        
+        .radar-wave:nth-child(4) {
+            animation-delay: 1.5s;
+        }
+        
+        @keyframes radarWave {
+            0% {
+                width: 40px;
+                height: 40px;
+                opacity: 1;
+            }
+            100% {
+                width: 200px;
+                height: 200px;
+                opacity: 0;
+            }
+        }
+        
+        /* 統計資訊 */
+        .stats-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+            margin-bottom: 30px;
+        }
+        
+        .stat-card {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 20px;
+            text-align: center;
+            border: 2px solid transparent;
+            transition: all 0.3s;
+        }
+        
+        .stat-card:hover {
+            border-color: #667eea;
+            transform: translateY(-2px);
+        }
+        
+        .stat-number {
+            font-size: 32px;
+            font-weight: bold;
+            color: #667eea;
+            margin-bottom: 5px;
+        }
+        
+        .stat-label {
+            font-size: 14px;
+            color: #666;
+        }
+        
+        .stat-card.highlight {
+            background: linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%);
+            animation: highlightPulse 0.5s ease;
+        }
+        
+        @keyframes highlightPulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+        }
+        
+        /* 設備列表 */
+        .devices-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+        
+        .devices-title {
+            font-size: 20px;
+            font-weight: bold;
+            color: #333;
+        }
+        
+        .sort-controls {
+            display: flex;
+            gap: 10px;
+        }
+        
+        .sort-btn {
+            padding: 8px 15px;
+            background: #f8f9fa;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .sort-btn:hover {
+            background: #e9ecef;
+        }
+        
+        .sort-btn.active {
+            background: #667eea;
+            color: white;
+            border-color: #667eea;
+        }
+        
         .devices-container {
             max-height: 500px;
             overflow-y: auto;
+            padding-right: 10px;
+        }
+        
+        .devices-container::-webkit-scrollbar {
+            width: 8px;
+        }
+        
+        .devices-container::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 10px;
+        }
+        
+        .devices-container::-webkit-scrollbar-thumb {
+            background: #667eea;
+            border-radius: 10px;
         }
         
         .device-card {
@@ -93,26 +305,47 @@
             margin-bottom: 15px;
             border-left: 4px solid transparent;
             transition: all 0.3s;
+            animation: slideIn 0.3s ease;
+        }
+        
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateX(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+        
+        .device-card.new-device {
+            animation: newDeviceHighlight 1s ease;
+        }
+        
+        @keyframes newDeviceHighlight {
+            0%, 100% { background: #f8f9fa; }
+            50% { background: #fff3cd; }
         }
         
         .device-very-close {
             border-left-color: #28a745;
-            background: #d4edda;
+            background: linear-gradient(135deg, #d4edda 0%, #c3e6cb 100%);
         }
         
         .device-close {
             border-left-color: #17a2b8;
-            background: #d1ecf1;
+            background: linear-gradient(135deg, #d1ecf1 0%, #bee5eb 100%);
         }
         
         .device-medium {
             border-left-color: #ffc107;
-            background: #fff3cd;
+            background: linear-gradient(135deg, #fff3cd 0%, #ffeaa7 100%);
         }
         
         .device-far {
             border-left-color: #dc3545;
-            background: #f8d7da;
+            background: linear-gradient(135deg, #f8d7da 0%, #f5c6cb 100%);
         }
         
         .device-header {
@@ -126,6 +359,27 @@
             font-size: 18px;
             font-weight: bold;
             color: #333;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .new-badge {
+            background: #28a745;
+            color: white;
+            font-size: 12px;
+            padding: 3px 8px;
+            border-radius: 12px;
+            font-weight: normal;
+        }
+        
+        .demo-badge {
+            background: #17a2b8;
+            color: white;
+            font-size: 12px;
+            padding: 3px 8px;
+            border-radius: 12px;
+            font-weight: normal;
         }
         
         .device-distance {
@@ -157,11 +411,33 @@
             font-weight: bold;
         }
         
+        .signal-strength-bar {
+            width: 100%;
+            height: 8px;
+            background: #e0e0e0;
+            border-radius: 4px;
+            margin-top: 10px;
+            overflow: hidden;
+        }
+        
+        .signal-strength-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #28a745 0%, #ffc107 50%, #dc3545 100%);
+            transition: width 0.3s ease;
+            border-radius: 4px;
+        }
+        
         .no-devices {
             text-align: center;
-            padding: 40px;
+            padding: 60px 40px;
             color: #999;
             font-size: 16px;
+        }
+        
+        .no-devices-icon {
+            font-size: 80px;
+            margin-bottom: 20px;
+            opacity: 0.5;
         }
         
         .error {
@@ -193,6 +469,24 @@
             margin-bottom: 5px;
         }
         
+        .debug-info {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 15px;
+            margin-top: 20px;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            color: #666;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+        
+        .debug-title {
+            font-weight: bold;
+            margin-bottom: 10px;
+            color: #333;
+        }
+        
         @media (max-width: 600px) {
             .container {
                 padding: 20px;
@@ -205,6 +499,19 @@
             .device-info {
                 grid-template-columns: 1fr;
             }
+            
+            .stats-container {
+                grid-template-columns: repeat(2, 1fr);
+            }
+            
+            .sort-controls {
+                flex-direction: column;
+                width: 100%;
+            }
+            
+            .sort-btn {
+                width: 100%;
+            }
         }
     </style>
 </head>
@@ -213,107 +520,327 @@
         <h1>🔍 BLE Advertising 掃描測距</h1>
         
         <div class="warning">
-            <strong>⚠️ 實驗性功能警告</strong>
-            此功能使用實驗性的 Web Bluetooth Scanning API，目前大多數瀏覽器不支援。這只是一個概念展示。
+            <strong>⚠️ API 限制說明</strong>
+            Web Bluetooth Scanning API 目前幾乎沒有瀏覽器支援。即使允許了權限，API 也可能無法正常運作。
         </div>
         
-        <div class="instructions">
-            <strong>📋 啟用方法（Chrome）：</strong>
-            <ol>
-                <li>在網址列輸入：<code>chrome://flags</code></li>
-                <li>搜尋：<code>Experimental Web Platform features</code></li>
-                <li>設定為：<code>Enabled</code></li>
-                <li>重新啟動瀏覽器</li>
-                <li>必須使用 HTTPS 連線</li>
-            </ol>
+        <div class="info" id="demoInfo" style="display: none;">
+            <strong>ℹ️ 演示模式</strong>
+            由於真實 API 不可用，目前使用模擬數據展示功能。這展示了當 API 可用時的預期行為。
         </div>
         
         <div id="errorMsg" class="error" style="display: none;"></div>
         
         <div class="controls">
-            <button class="btn" id="startBtn">開始掃描</button>
+            <button class="btn" id="startBtn">嘗試真實掃描</button>
+            <button class="btn btn-demo" id="demoBtn">演示模式</button>
             <button class="btn btn-stop" id="stopBtn" disabled>停止掃描</button>
         </div>
         
+        <!-- 掃描狀態區域 -->
+        <div class="scan-status" id="scanStatus">
+            <div class="scan-status-icon" id="statusIcon">📡</div>
+            <div class="scan-status-text" id="statusText">準備掃描</div>
+            <div class="scan-status-subtext" id="statusSubtext">選擇掃描模式開始</div>
+            <div class="radar-container">
+                <div class="radar-wave"></div>
+                <div class="radar-wave"></div>
+                <div class="radar-wave"></div>
+                <div class="radar-wave"></div>
+            </div>
+        </div>
+        
+        <!-- 統計資訊 -->
+        <div class="stats-container">
+            <div class="stat-card" id="statTotal">
+                <div class="stat-number" id="totalDevices">0</div>
+                <div class="stat-label">總設備數</div>
+            </div>
+            <div class="stat-card" id="statNew">
+                <div class="stat-number" id="newDevices">0</div>
+                <div class="stat-label">新發現</div>
+            </div>
+            <div class="stat-card" id="statNear">
+                <div class="stat-number" id="nearDevices">0</div>
+                <div class="stat-label">附近設備</div>
+            </div>
+            <div class="stat-card" id="statSignals">
+                <div class="stat-number" id="totalSignals">0</div>
+                <div class="stat-label">接收信號數</div>
+            </div>
+        </div>
+        
+        <!-- 設備列表 -->
+        <div class="devices-header">
+            <div class="devices-title">偵測到的設備</div>
+            <div class="sort-controls">
+                <button class="sort-btn active" id="sortDistance">依距離</button>
+                <button class="sort-btn" id="sortSignal">依信號</button>
+                <button class="sort-btn" id="sortName">依名稱</button>
+            </div>
+        </div>
+        
         <div class="devices-container" id="devicesContainer">
-            <div class="no-devices">點擊「開始掃描」來偵測附近的 BLE 設備</div>
+            <div class="no-devices">
+                <div class="no-devices-icon">🔍</div>
+                <div>選擇掃描模式開始</div>
+            </div>
+        </div>
+        
+        <!-- 除錯資訊 -->
+        <div class="debug-info" id="debugInfo">
+            <div class="debug-title">除錯日誌：</div>
+            <div id="debugLog"></div>
         </div>
     </div>
 
     <script>
         const startBtn = document.getElementById('startBtn');
+        const demoBtn = document.getElementById('demoBtn');
         const stopBtn = document.getElementById('stopBtn');
         const devicesContainer = document.getElementById('devicesContainer');
         const errorMsg = document.getElementById('errorMsg');
+        const demoInfo = document.getElementById('demoInfo');
+        const scanStatus = document.getElementById('scanStatus');
+        const statusIcon = document.getElementById('statusIcon');
+        const statusText = document.getElementById('statusText');
+        const statusSubtext = document.getElementById('statusSubtext');
+        const totalDevicesEl = document.getElementById('totalDevices');
+        const newDevicesEl = document.getElementById('newDevices');
+        const nearDevicesEl = document.getElementById('nearDevices');
+        const totalSignalsEl = document.getElementById('totalSignals');
+        const sortDistanceBtn = document.getElementById('sortDistance');
+        const sortSignalBtn = document.getElementById('sortSignal');
+        const sortNameBtn = document.getElementById('sortName');
+        const debugLog = document.getElementById('debugLog');
         
         let scanning = false;
+        let demoMode = false;
         let devices = new Map();
         let scanAbortController = null;
+        let totalSignalCount = 0;
+        let newDeviceCount = 0;
+        let sortMode = 'distance';
+        let scanStartTime = null;
+        let demoInterval = null;
 
+        // 模擬設備名稱
+        const demoDeviceNames = [
+            'iPhone 13', 'Samsung Galaxy', 'AirPods Pro', 'Apple Watch',
+            'Fitbit Charge', 'Xiaomi Band', 'Tile Tracker', 'Sony Headphones',
+            'JBL Speaker', 'Smart Watch', 'Fitness Tracker', 'Bluetooth Mouse'
+        ];
+
+        addDebugLog('系統初始化完成');
+        
         // 檢查 API 支援
         if (!navigator.bluetooth) {
             showError('您的瀏覽器不支援 Web Bluetooth API');
             startBtn.disabled = true;
+            updateStatus('❌', '不支援', '您的瀏覽器不支援此功能');
+            addDebugLog('錯誤: 瀏覽器不支援 Web Bluetooth API');
+        } else {
+            addDebugLog('Web Bluetooth API 可用');
+            if (!navigator.bluetooth.requestLEScan) {
+                addDebugLog('警告: requestLEScan 方法不可用');
+            } else {
+                addDebugLog('requestLEScan 方法可用（但可能無法正常運作）');
+            }
         }
 
-        startBtn.addEventListener('click', startScanning);
+        startBtn.addEventListener('click', startRealScanning);
+        demoBtn.addEventListener('click', startDemoScanning);
         stopBtn.addEventListener('click', stopScanning);
+        sortDistanceBtn.addEventListener('click', () => changeSortMode('distance'));
+        sortSignalBtn.addEventListener('click', () => changeSortMode('signal'));
+        sortNameBtn.addEventListener('click', () => changeSortMode('name'));
 
-        async function startScanning() {
+        async function startRealScanning() {
             try {
                 errorMsg.style.display = 'none';
+                demoMode = false;
+                addDebugLog('嘗試啟動真實掃描...');
                 
-                // 檢查是否支援 requestLEScan（實驗性 API）
                 if (!navigator.bluetooth.requestLEScan) {
-                    throw new Error('您的瀏覽器不支援 Bluetooth Scanning API。請啟用實驗性功能或使用支援的瀏覽器。');
+                    throw new Error('requestLEScan 方法不存在');
                 }
 
                 scanAbortController = new AbortController();
                 
-                // 開始掃描（這需要用戶手勢觸發）
+                updateStatus('🔄', '正在初始化...', '請在彈出視窗中允許藍牙掃描權限');
+                addDebugLog('正在請求掃描權限...');
+                
                 const scan = await navigator.bluetooth.requestLEScan({
                     acceptAllAdvertisements: true,
                     signal: scanAbortController.signal
                 });
 
+                addDebugLog('掃描權限已授予！');
+                addDebugLog('scan 物件: ' + JSON.stringify(scan));
+                
                 scanning = true;
+                scanStartTime = Date.now();
                 startBtn.disabled = true;
+                demoBtn.disabled = true;
                 stopBtn.disabled = false;
+                scanStatus.classList.add('scanning');
+                
+                updateStatus('📡', '掃描中...', '正在搜尋附近的 BLE 設備');
+                addDebugLog('掃描已開始');
 
-                // 監聽 advertising 事件
                 navigator.bluetooth.addEventListener('advertisementreceived', handleAdvertisement);
+                addDebugLog('已註冊 advertisementreceived 事件監聽器');
 
-                console.log('開始掃描 BLE 設備...');
+                updateScanDuration();
+                
+                // 10秒後如果沒有發現設備，顯示提示
+                setTimeout(() => {
+                    if (scanning && devices.size === 0) {
+                        addDebugLog('警告: 10秒內未發現任何設備');
+                        updateStatus('⚠️', '未發現設備', '可能 API 無法正常運作，建議使用演示模式');
+                    }
+                }, 10000);
 
             } catch (error) {
                 console.error('掃描錯誤:', error);
-                showError('掃描失敗: ' + error.message);
+                addDebugLog('錯誤: ' + error.name + ' - ' + error.message);
+                showError('真實掃描失敗: ' + error.message + '\n\n建議使用「演示模式」查看功能展示');
+                updateStatus('❌', '掃描失敗', '建議使用演示模式');
+                scanning = false;
+                startBtn.disabled = false;
+                demoBtn.disabled = false;
+                stopBtn.disabled = true;
+                scanStatus.classList.remove('scanning');
+                scanStatus.classList.add('error');
             }
         }
 
+        function startDemoScanning() {
+            addDebugLog('啟動演示模式');
+            demoMode = true;
+            demoInfo.style.display = 'block';
+            errorMsg.style.display = 'none';
+            
+            scanning = true;
+            scanStartTime = Date.now();
+            startBtn.disabled = true;
+            demoBtn.disabled = true;
+            stopBtn.disabled = false;
+            scanStatus.classList.add('scanning');
+            scanStatus.classList.remove('error');
+            
+            updateStatus('📡', '掃描中（演示）', '正在模擬 BLE 設備發現');
+            addDebugLog('演示模式: 開始生成模擬設備');
+            
+            // 初始生成一些設備
+            setTimeout(() => generateDemoDevice(), 500);
+            setTimeout(() => generateDemoDevice(), 1500);
+            setTimeout(() => generateDemoDevice(), 2500);
+            
+            // 持續生成新設備和更新現有設備
+            demoInterval = setInterval(() => {
+                if (Math.random() < 0.3 && devices.size < 10) {
+                    generateDemoDevice();
+                }
+                updateExistingDemoDevices();
+            }, 2000);
+            
+            updateScanDuration();
+        }
+
+        function generateDemoDevice() {
+            const deviceId = 'demo-' + Math.random().toString(36).substr(2, 9);
+            const deviceName = demoDeviceNames[Math.floor(Math.random() * demoDeviceNames.length)];
+            const rssi = -40 - Math.random() * 50; // -40 到 -90
+            const txPower = -59;
+            const distance = calculateDistance(rssi, txPower);
+            
+            const isNew = !devices.has(deviceId);
+            
+            if (isNew) {
+                newDeviceCount++;
+                totalSignalCount++;
+                highlightStat('statNew');
+                highlightStat('statTotal');
+                addDebugLog(`發現新設備: ${deviceName} (RSSI: ${rssi.toFixed(0)}dBm, 距離: ${distance.toFixed(2)}m)`);
+            }
+            
+            const deviceData = {
+                name: deviceName,
+                id: deviceId,
+                rssi: rssi,
+                txPower: txPower,
+                distance: distance,
+                lastSeen: Date.now(),
+                isNew: isNew,
+                isDemo: true,
+                signalCount: (devices.get(deviceId)?.signalCount || 0) + 1
+            };
+            
+            devices.set(deviceId, deviceData);
+            updateDevicesDisplay();
+            updateStats();
+        }
+
+        function updateExistingDemoDevices() {
+            devices.forEach((device, id) => {
+                // 隨機更新 RSSI 值（模擬移動）
+                const rssiChange = (Math.random() - 0.5) * 10;
+                device.rssi = Math.max(-100, Math.min(-30, device.rssi + rssiChange));
+                device.distance = calculateDistance(device.rssi, device.txPower);
+                device.lastSeen = Date.now();
+                device.signalCount++;
+                device.isNew = false;
+                totalSignalCount++;
+            });
+            
+            updateDevicesDisplay();
+            updateStats();
+        }
+
         function stopScanning() {
+            addDebugLog('停止掃描');
+            
             if (scanAbortController) {
                 scanAbortController.abort();
+            }
+            
+            if (demoInterval) {
+                clearInterval(demoInterval);
+                demoInterval = null;
             }
             
             navigator.bluetooth.removeEventListener('advertisementreceived', handleAdvertisement);
             
             scanning = false;
             startBtn.disabled = false;
+            demoBtn.disabled = false;
             stopBtn.disabled = true;
+            scanStatus.classList.remove('scanning');
             
-            console.log('停止掃描');
+            const deviceCount = devices.size;
+            const modeText = demoMode ? '（演示）' : '';
+            updateStatus('✅', `掃描已停止${modeText}`, `共發現 ${deviceCount} 個設備，接收 ${totalSignalCount} 個信號`);
+            addDebugLog(`掃描結束: 發現 ${deviceCount} 個設備，接收 ${totalSignalCount} 個信號`);
         }
 
         function handleAdvertisement(event) {
             const device = event.device;
             const rssi = event.rssi;
-            const txPower = event.txPower || -59; // 預設發射功率
+            const txPower = event.txPower || -59;
             
-            // 計算距離
+            totalSignalCount++;
+            
             const distance = calculateDistance(rssi, txPower);
+            const isNewDevice = !devices.has(device.id);
             
-            // 更新設備資訊
+            if (isNewDevice) {
+                newDeviceCount++;
+                highlightStat('statNew');
+                highlightStat('statTotal');
+                addDebugLog(`真實設備: ${device.name || '未命名'} (RSSI: ${rssi}dBm)`);
+            }
+            
             const deviceData = {
                 name: device.name || '未命名設備',
                 id: device.id,
@@ -321,56 +848,95 @@
                 txPower: txPower,
                 distance: distance,
                 lastSeen: Date.now(),
-                manufacturerData: event.manufacturerData,
-                serviceData: event.serviceData
+                isNew: isNewDevice,
+                isDemo: false,
+                signalCount: (devices.get(device.id)?.signalCount || 0) + 1
             };
             
             devices.set(device.id, deviceData);
-            
-            // 更新顯示
             updateDevicesDisplay();
+            updateStats();
         }
 
         function calculateDistance(rssi, txPower) {
-            // 使用對數路徑損耗模型估算距離
-            // d = 10 ^ ((TxPower - RSSI) / (10 * n))
-            // n = 路徑損耗指數，室內通常為 2-4
             const n = 2.5;
             const distance = Math.pow(10, (txPower - rssi) / (10 * n));
             return distance;
         }
 
+        function updateStats() {
+            totalDevicesEl.textContent = devices.size;
+            newDevicesEl.textContent = newDeviceCount;
+            totalSignalsEl.textContent = totalSignalCount;
+            
+            let nearCount = 0;
+            for (const device of devices.values()) {
+                if (device.distance < 2) {
+                    nearCount++;
+                }
+            }
+            nearDevicesEl.textContent = nearCount;
+        }
+
+        function highlightStat(statId) {
+            const statCard = document.getElementById(statId);
+            statCard.classList.add('highlight');
+            setTimeout(() => {
+                statCard.classList.remove('highlight');
+            }, 500);
+        }
+
         function updateDevicesDisplay() {
-            // 清除過期設備（超過 5 秒未見）
             const now = Date.now();
             for (const [id, device] of devices.entries()) {
                 if (now - device.lastSeen > 5000) {
                     devices.delete(id);
+                    addDebugLog(`移除過期設備: ${device.name}`);
                 }
             }
 
             if (devices.size === 0) {
-                devicesContainer.innerHTML = '<div class="no-devices">未偵測到設備</div>';
+                if (scanning) {
+                    devicesContainer.innerHTML = `
+                        <div class="no-devices">
+                            <div class="no-devices-icon">🔍</div>
+                            <div>掃描中... 尚未發現設備</div>
+                            <div style="margin-top: 10px; font-size: 14px;">請確保附近有開啟的 BLE 設備</div>
+                        </div>
+                    `;
+                } else {
+                    devicesContainer.innerHTML = `
+                        <div class="no-devices">
+                            <div class="no-devices-icon">📱</div>
+                            <div>未偵測到設備</div>
+                        </div>
+                    `;
+                }
                 return;
             }
 
-            // 按距離排序
-            const sortedDevices = Array.from(devices.values()).sort((a, b) => a.distance - b.distance);
+            const sortedDevices = sortDevices(Array.from(devices.values()));
 
             devicesContainer.innerHTML = sortedDevices.map(device => {
                 const distanceClass = getDistanceClass(device.distance);
                 const distanceText = getDistanceText(device.distance);
+                const signalPercent = Math.min(100, Math.max(0, (device.rssi + 100) * 2));
+                const timeSinceLastSeen = Math.floor((now - device.lastSeen) / 1000);
                 
                 return `
-                    <div class="device-card ${distanceClass}">
+                    <div class="device-card ${distanceClass} ${device.isNew ? 'new-device' : ''}">
                         <div class="device-header">
-                            <div class="device-name">${escapeHtml(device.name)}</div>
+                            <div class="device-name">
+                                ${escapeHtml(device.name)}
+                                ${device.isNew ? '<span class="new-badge">NEW</span>' : ''}
+                                ${device.isDemo ? '<span class="demo-badge">DEMO</span>' : ''}
+                            </div>
                             <div class="device-distance">${distanceText}</div>
                         </div>
                         <div class="device-info">
                             <div class="info-item">
                                 <span class="info-label">RSSI:</span>
-                                <span class="info-value">${device.rssi} dBm</span>
+                                <span class="info-value">${device.rssi.toFixed(0)} dBm</span>
                             </div>
                             <div class="info-item">
                                 <span class="info-label">發射功率:</span>
@@ -381,13 +947,58 @@
                                 <span class="info-value">${device.distance.toFixed(2)} 公尺</span>
                             </div>
                             <div class="info-item">
-                                <span class="info-label">設備 ID:</span>
-                                <span class="info-value">${device.id.substring(0, 8)}...</span>
+                                <span class="info-label">信號數:</span>
+                                <span class="info-value">${device.signalCount}</span>
                             </div>
+                            <div class="info-item">
+                                <span class="info-label">最後更新:</span>
+                                <span class="info-value">${timeSinceLastSeen} 秒前</span>
+                            </div>
+                            <div class="info-item">
+                                <span class="info-label">設備 ID:</span>
+                                <span class="info-value">${device.id.substring(0, 12)}...</span>
+                            </div>
+                        </div>
+                        <div class="signal-strength-bar">
+                            <div class="signal-strength-fill" style="width: ${signalPercent}%"></div>
                         </div>
                     </div>
                 `;
             }).join('');
+            
+            setTimeout(() => {
+                devices.forEach(device => {
+                    device.isNew = false;
+                });
+            }, 1000);
+        }
+
+        function sortDevices(devicesArray) {
+            switch (sortMode) {
+                case 'distance':
+                    return devicesArray.sort((a, b) => a.distance - b.distance);
+                case 'signal':
+                    return devicesArray.sort((a, b) => b.rssi - a.rssi);
+                case 'name':
+                    return devicesArray.sort((a, b) => a.name.localeCompare(b.name));
+                default:
+                    return devicesArray;
+            }
+        }
+
+        function changeSortMode(mode) {
+            sortMode = mode;
+            
+            document.querySelectorAll('.sort-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            
+            if (mode === 'distance') sortDistanceBtn.classList.add('active');
+            if (mode === 'signal') sortSignalBtn.classList.add('active');
+            if (mode === 'name') sortNameBtn.classList.add('active');
+            
+            addDebugLog(`排序模式切換為: ${mode}`);
+            updateDevicesDisplay();
         }
 
         function getDistanceClass(distance) {
@@ -404,6 +1015,33 @@
             return '遠離';
         }
 
+        function updateStatus(icon, text, subtext) {
+            statusIcon.textContent = icon;
+            statusText.textContent = text;
+            statusSubtext.textContent = subtext;
+        }
+
+        function updateScanDuration() {
+            if (!scanning) return;
+            
+            const duration = Math.floor((Date.now() - scanStartTime) / 1000);
+            const modeText = demoMode ? '（演示）' : '';
+            updateStatus('📡', `掃描中...${modeText}`, `已找到 ${devices.size} 個設備 | 運行 ${duration} 秒`);
+            
+            setTimeout(updateScanDuration, 1000);
+        }
+
+        function addDebugLog(message) {
+            const timestamp = new Date().toLocaleTimeString();
+            const logEntry = `[${timestamp}] ${message}`;
+            console.log(logEntry);
+            
+            const logDiv = document.createElement('div');
+            logDiv.textContent = logEntry;
+            debugLog.appendChild(logDiv);
+            debugLog.scrollTop = debugLog.scrollHeight;
+        }
+
         function escapeHtml(text) {
             const div = document.createElement('div');
             div.textContent = text;
@@ -415,9 +1053,8 @@
             errorMsg.style.display = 'block';
         }
 
-        // 定期更新顯示（移除過期設備）
         setInterval(() => {
-            if (scanning) {
+            if (scanning || devices.size > 0) {
                 updateDevicesDisplay();
             }
         }, 1000);
